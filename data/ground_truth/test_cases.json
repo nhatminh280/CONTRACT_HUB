@@ -1,0 +1,1010 @@
+[
+  {
+    "query_id": "q001",
+    "query": "Highlight the parts (if any) of this contract related to \"Document Name\" that should be reviewed by a lawyer. Details: The name of the contract",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_005",
+    "expected_answer_text": "EXHIBIT 'B'",
+    "expected_contains": [
+      "EXHIBIT"
+    ],
+    "expected_page": 2,
+    "answer_start_char": 4517,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q002",
+    "query": "Highlight the parts (if any) of this contract related to \"Parties\" that should be reviewed by a lawyer. Details: The two or more parties who signed the contract",
+    "expected_clause_type": "Parties",
+    "expected_contract_id": "contract_005",
+    "expected_answer_text": "Kubient, Inc.",
+    "expected_contains": [
+      "Kubient,",
+      "Inc."
+    ],
+    "expected_page": 1,
+    "answer_start_char": 91,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q003",
+    "query": "Highlight the parts (if any) of this contract related to \"Agreement Date\" that should be reviewed by a lawyer. Details: The date of the contract",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_005",
+    "expected_answer_text": "the 26th day of March 2020",
+    "expected_contains": [
+      "26th",
+      "March",
+      "2020"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 49,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q004",
+    "query": "Highlight the parts (if any) of this contract related to \"Effective Date\" that should be reviewed by a lawyer. Details: The date when the contract is effective",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_005",
+    "expected_answer_text": "February 5, 2020",
+    "expected_contains": [
+      "February",
+      "2020"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 302,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q005",
+    "query": "Highlight the parts (if any) of this contract related to \"No-Solicit Of Customers\" that should be reviewed by a lawyer. Details: Is a party restricted from contracting or soliciting customers or partners of the counterparty, whether during the contract or after the contract ends (or both)?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_005",
+    "expected_answer_text": "During the Term and any renewal terms of the Agreement, and for a period of one (1) year following the expiration or earlier termination thereof, Customer agrees not to work with, directly or indirectly, any Third-Party that Customer comes to know through disclosure by Kubient as part of the Services, without the express written consent of Kubient and compensation to Kubient under the applicable exhibit and/or schedule.",
+    "expected_contains": [
+      "During",
+      "Term",
+      "renewal"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 1867,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q006",
+    "query": "Highlight the parts (if any) of this contract related to \"Competitive Restriction Exception\" that should be reviewed by a lawyer. Details: This category includes the exceptions or carveouts to Non-Compete, Exclusivity and No-Solicit of Customers above.",
+    "expected_clause_type": "Non-Compete",
+    "expected_contract_id": "contract_005",
+    "expected_answer_text": "Provided however, this provision shall not apply in the event Customer can establish, in writing, that it had a preexisting working relationship with such Third-Party prior to the Agreement and without Kubient's assistance. Customer acknowledges that this provision is reasonable and necessary for the protection of Kubient and that Kubient will be irrevocably damaged if such covenant is not specifically enforced. Customer further agrees that Kubient will be entitled to seek injunctive relief for the purpose of restraining Customer from violating this covenant (and no bond or other security shall be required in connection therewith) in addition to any other relief to which Kubient may be entitled under the Agreement.",
+    "expected_contains": [
+      "Provided",
+      "however,",
+      "this"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 2291,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q007",
+    "query": "Highlight the parts (if any) of this contract related to \"No-Solicit Of Employees\" that should be reviewed by a lawyer. Details: Is there a restriction on a party’s soliciting or hiring employees and/or contractors from the  counterparty, whether during the contract or after the contract ends (or both)?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_005",
+    "expected_answer_text": "During the Term and any renewal terms of the Agreement, and for a period of one (1) year following the expiration or earlier termination thereof, Customer shall not, whether for its own account or for the account of any other person or entity, interfere with the relationship of Kubient with, or endeavor to entice away from Kubient, any person or entity who was or is a an employee or Third-Party of Kubient.",
+    "expected_contains": [
+      "During",
+      "Term",
+      "renewal"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 3563,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q008",
+    "query": "Highlight the parts (if any) of this contract related to \"Revenue/Profit Sharing\" that should be reviewed by a lawyer. Details: Is one party required to share revenue or profit with the counterparty for any technology, goods, or services?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_005",
+    "expected_answer_text": "Monthly Revenue* Below Threshold Above Threshold Type Threshold Customer Kubient Customer Kubient Programmatic/Display $ 300,000.00 90% 10%** 50% 50% Video $ 30,000.00 100% 0 % 50% 50% Direct Deals*** Undertone 100% 0 % 50% 50% Native**** $ 100,000.00 100% 0 % 50% 50% Data/Newsletter $ - 0 % 0 % 50% 50% Podcasts $ - 0 % 0 % 50% 50% Other $ - 0 % 0 % 50% 50%",
+    "expected_contains": [
+      "Monthly",
+      "Revenue*",
+      "Below"
+    ],
+    "expected_page": 2,
+    "answer_start_char": 4866,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q009",
+    "query": "Highlight the parts (if any) of this contract related to \"Document Name\" that should be reviewed by a lawyer. Details: The name of the contract",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "Master Services Agreement",
+    "expected_contains": [
+      "Master",
+      "Services",
+      "Agreement"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 45,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q010",
+    "query": "Highlight the parts (if any) of this contract related to \"Parties\" that should be reviewed by a lawyer. Details: The two or more parties who signed the contract",
+    "expected_clause_type": "Parties",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "the \"Customer\"",
+    "expected_contains": [
+      "\"Customer\""
+    ],
+    "expected_page": 1,
+    "answer_start_char": 419,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q011",
+    "query": "Highlight the parts (if any) of this contract related to \"Agreement Date\" that should be reviewed by a lawyer. Details: The date of the contract",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "the 5th day of February, 2020",
+    "expected_contains": [
+      "February,",
+      "2020"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 102,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q012",
+    "query": "Highlight the parts (if any) of this contract related to \"Effective Date\" that should be reviewed by a lawyer. Details: The date when the contract is effective",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "the 5th day of February, 2020",
+    "expected_contains": [
+      "February,",
+      "2020"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 102,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q013",
+    "query": "Highlight the parts (if any) of this contract related to \"Expiration Date\" that should be reviewed by a lawyer. Details: On what date will the contract's initial term expire?",
+    "expected_clause_type": "Expiration Date",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "The initial term of this Agreement shall be one (1) year from the Effective Date (the \"Initial Term\").",
+    "expected_contains": [
+      "initial",
+      "term",
+      "this"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 3896,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q014",
+    "query": "Highlight the parts (if any) of this contract related to \"Renewal Term\" that should be reviewed by a lawyer. Details: What is the renewal term after the initial term expires? This includes automatic extensions and unilateral extensions with prior notice.",
+    "expected_clause_type": "Renewal Term",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "This Agreement will automatically renew for additional 1-year terms unless earlier terminated pursuant to this Agreement's express provisions (together with the Initial Term, such additional periods the \"Term\").",
+    "expected_contains": [
+      "This",
+      "Agreement",
+      "will"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 3999,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q015",
+    "query": "Highlight the parts (if any) of this contract related to \"Governing Law\" that should be reviewed by a lawyer. Details: Which state/country's law governs the interpretation of the contract?",
+    "expected_clause_type": "Governing Law",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "This Agreement is governed in all respects by the laws of the State of Delaware without giving effect to its conflict of laws principles.",
+    "expected_contains": [
+      "This",
+      "Agreement",
+      "governed"
+    ],
+    "expected_page": 4,
+    "answer_start_char": 20089,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q016",
+    "query": "Highlight the parts (if any) of this contract related to \"Termination For Convenience\" that should be reviewed by a lawyer. Details: Can a party terminate this  contract without cause (solely by giving a notice and allowing a waiting  period to expire)?",
+    "expected_clause_type": "Termination For Convenience",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "Either Party may terminate this Agreement for any reason following the Initial Term upon ninety (90) days written notice to the other Party.",
+    "expected_contains": [
+      "Either",
+      "Party",
+      "terminate"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 4332,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q017",
+    "query": "Highlight the parts (if any) of this contract related to \"Anti-Assignment\" that should be reviewed by a lawyer. Details: Is consent or notice required of a party if the contract is assigned to a third party?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "Neither Party may assign (voluntarily, by operation of law, or otherwise) this Agreement or any rights or obligations under this Agreement without the other Party's prior written consent, which shall not be unreasonably withheld, provided however, that either Party may assign this Agreement without approval or consent to any affiliate or purchaser of all or substantially all of said Party's assets related to the subject matter of this Agreement or to any successor by way of merger, stock sale, consolidation or similar transaction. Any attempted assignment other than in accordance herewith will be void.",
+    "expected_contains": [
+      "Neither",
+      "Party",
+      "assign"
+    ],
+    "expected_page": 4,
+    "answer_start_char": 24155,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q018",
+    "query": "Highlight the parts (if any) of this contract related to \"Revenue/Profit Sharing\" that should be reviewed by a lawyer. Details: Is one party required to share revenue or profit with the counterparty for any technology, goods, or services?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "The Parties agree to share any revenue generated as a result of this Agreement, or Customer's use of the Services or the Auction Platform, as set forth and detailed in each applicable Exhibit.",
+    "expected_contains": [
+      "Parties",
+      "agree",
+      "share"
+    ],
+    "expected_page": 2,
+    "answer_start_char": 5953,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q019",
+    "query": "Highlight the parts (if any) of this contract related to \"License Grant\" that should be reviewed by a lawyer. Details: Does the contract contain a license granted by one party to its counterparty?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "In the event Customer shall utilize Kubient's ad serving technology as part of the Services, Kubient hereby grants to Customer a limited, royalty-free, non-exclusive, non-transferable, non-assignable, without right of sublicense, revocable license to access, participate in and use to the full extent the Auction Platform as hosted by Kubient, for the purpose of serving Inventory at Target Demand (\"          \").",
+    "expected_contains": [
+      "event",
+      "Customer",
+      "shall"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 1734,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q020",
+    "query": "Highlight the parts (if any) of this contract related to \"Non-Transferable License\" that should be reviewed by a lawyer. Details: Does the contract limit the ability of a party to transfer the license being granted to a third party?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "In the event Customer shall utilize Kubient's ad serving technology as part of the Services, Kubient hereby grants to Customer a limited, royalty-free, non-exclusive, non-transferable, non-assignable, without right of sublicense, revocable license to access, participate in and use to the full extent the Auction Platform as hosted by Kubient, for the purpose of serving Inventory at Target Demand (\"          \").",
+    "expected_contains": [
+      "event",
+      "Customer",
+      "shall"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 1734,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q021",
+    "query": "Highlight the parts (if any) of this contract related to \"Uncapped Liability\" that should be reviewed by a lawyer. Details: Is a party’s liability uncapped upon the breach of its obligation in the contract? This also includes uncap liability for a particular type of breach such as IP infringement or breach of confidentiality obligation.",
+    "expected_clause_type": "Cap on Liability",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "EXCEPT WITH RESPECT TO THE PARTIES' LIABILITY FOR INDEMNIFICATION, OR LIABILITY FOR BREACH OF CONFIDENTIALITY, NEITHER PARTY SHALL BE LIABLE FOR ANY CONSEQUENTIAL, INCIDENTAL, INDIRECT, PUNITIVE, SPECIAL OR OTHER SIMILAR DAMAGES, WHETHER OR NOT CAUSED BY THE OTHER PARTY'S EMPLOYEES OR REPRESENTATIVES„ WHETHER UNDER TORT (INCLUDING NEGLIGENCE), CONTRACT OR OTHER THEORIES OF RECOVERY, EVEN IF THE OTHER PARTY WAS OR SHOULD HAVE BEEN AWARE OR WAS ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.",
+    "expected_contains": [
+      "EXCEPT",
+      "WITH",
+      "RESPECT"
+    ],
+    "expected_page": 2,
+    "answer_start_char": 8449,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q022",
+    "query": "Highlight the parts (if any) of this contract related to \"Cap On Liability\" that should be reviewed by a lawyer. Details: Does the contract include a cap on liability upon the breach of a party’s obligation? This includes time limitation for the counterparty to bring claims or maximum amount for recovery.",
+    "expected_clause_type": "Cap on Liability",
+    "expected_contract_id": "contract_004",
+    "expected_answer_text": "EXCEPT WITH RESPECT TO THE PARTIES' LIABILITY FOR INDEMNIFICATION, OR LIABILITY FOR BREACH OF CONFIDENTIALITY, NEITHER PARTY SHALL BE LIABLE FOR ANY CONSEQUENTIAL, INCIDENTAL, INDIRECT, PUNITIVE, SPECIAL OR OTHER SIMILAR DAMAGES, WHETHER OR NOT CAUSED BY THE OTHER PARTY'S EMPLOYEES OR REPRESENTATIVES„ WHETHER UNDER TORT (INCLUDING NEGLIGENCE), CONTRACT OR OTHER THEORIES OF RECOVERY, EVEN IF THE OTHER PARTY WAS OR SHOULD HAVE BEEN AWARE OR WAS ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. 8. Arbitration.",
+    "expected_contains": [
+      "EXCEPT",
+      "WITH",
+      "RESPECT"
+    ],
+    "expected_page": 2,
+    "answer_start_char": 8449,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q023",
+    "query": "Highlight the parts (if any) of this contract related to \"Document Name\" that should be reviewed by a lawyer. Details: The name of the contract",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "GLOBAL MASTER SUPPLY AGREEMENT",
+    "expected_contains": [
+      "GLOBAL",
+      "MASTER",
+      "SUPPLY"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 206,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q024",
+    "query": "Highlight the parts (if any) of this contract related to \"Parties\" that should be reviewed by a lawyer. Details: The two or more parties who signed the contract",
+    "expected_clause_type": "Parties",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "West Pharmaceutical Services, Inc.",
+    "expected_contains": [
+      "West",
+      "Pharmaceutical",
+      "Services,"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 590,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q025",
+    "query": "Highlight the parts (if any) of this contract related to \"Agreement Date\" that should be reviewed by a lawyer. Details: The date of the contract",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "January 10, 2020",
+    "expected_contains": [
+      "January",
+      "2020"
+    ],
+    "expected_page": 8,
+    "answer_start_char": 26256,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q026",
+    "query": "Highlight the parts (if any) of this contract related to \"Effective Date\" that should be reviewed by a lawyer. Details: The date when the contract is effective",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "Effective Date: January 1, 2019",
+    "expected_contains": [
+      "Effective",
+      "Date:",
+      "January"
+    ],
+    "expected_page": 4,
+    "answer_start_char": 10277,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q027",
+    "query": "Highlight the parts (if any) of this contract related to \"Expiration Date\" that should be reviewed by a lawyer. Details: On what date will the contract's initial term expire?",
+    "expected_clause_type": "Expiration Date",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "Termination Date: December 31, 2023",
+    "expected_contains": [
+      "Termination",
+      "Date:",
+      "December"
+    ],
+    "expected_page": 4,
+    "answer_start_char": 10310,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q028",
+    "query": "Highlight the parts (if any) of this contract related to \"Governing Law\" that should be reviewed by a lawyer. Details: Which state/country's law governs the interpretation of the contract?",
+    "expected_clause_type": "Governing Law",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "This Agreement between EM and Buyer shall be governed by the laws of Belgium (excluding its rules on conflict of laws).",
+    "expected_contains": [
+      "This",
+      "Agreement",
+      "between"
+    ],
+    "expected_page": 25,
+    "answer_start_char": 81715,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q029",
+    "query": "Highlight the parts (if any) of this contract related to \"Change Of Control\" that should be reviewed by a lawyer. Details: Does one party have the right to terminate or is consent or notice required of the counterparty if such party undergoes a change of control, such as a merger, stock sale, transfer of all or substantially all of its assets or business, or assignment by operation of law?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "Promptly after any public announcement regarding any proposed transaction that would result in a Change in Circumstances, Buyer/Buyer Affiliates shall notify Seller/ExxonMobil Selling Affiliates, in writing, of the nature of such transaction, the parties thereto and the proposed date of consummation",
+    "expected_contains": [
+      "Promptly",
+      "after",
+      "public"
+    ],
+    "expected_page": 6,
+    "answer_start_char": 18998,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q030",
+    "query": "Highlight the parts (if any) of this contract related to \"Anti-Assignment\" that should be reviewed by a lawyer. Details: Is consent or notice required of a party if the contract is assigned to a third party?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "This Agreement shall not be assigned, in whole or in part, by either party without the prior consent of the other party, but shall be binding upon and shall inure to the benefit of the legal successors of the respective parties hereto; except that Seller may assign this Agreement, in whole or in part, to any affiliate.",
+    "expected_contains": [
+      "This",
+      "Agreement",
+      "shall"
+    ],
+    "expected_page": 21,
+    "answer_start_char": 62611,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q031",
+    "query": "Highlight the parts (if any) of this contract related to \"Minimum Commitment\" that should be reviewed by a lawyer. Details: Is there a minimum order size or minimum amount or units per-time period that one party must buy from the counterparty under the contract?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "Subject to this Agreement's terms and conditions, Buyer Affiliates shall purchase and ExxonMobil Selling Affiliates shall sell the yearly minimum amount of Product amounts (in the aggregate) listed above",
+    "expected_contains": [
+      "Subject",
+      "this",
+      "Agreement's"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 1382,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q032",
+    "query": "Highlight the parts (if any) of this contract related to \"Volume Restriction\" that should be reviewed by a lawyer. Details: Is there a fee increase or consent requirement, etc. if one party’s use of the product/services exceeds certain threshold?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "In accordance with the provisions of this Agreement, ExxonMobil Selling Affiliates agree to sell to Buyer Affiliates, and Buyer Affiliates agree to purchase from ExxonMobil Selling Affiliates, the following product(s) (collectively, \"Product\"):\n\nProducts Quantity [Metric Tons / Year] Container PackageYear 2019 2020 2021 2022 2023 [*****] [*****] Minimum Maximum [*****] [*****] [*****] [*****] [*****] [*****] [*****] [*****] [*****] [*****] Leased metal crates",
+    "expected_contains": [
+      "accordance",
+      "with",
+      "provisions"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 808,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q033",
+    "query": "Highlight the parts (if any) of this contract related to \"Audit Rights\" that should be reviewed by a lawyer. Details: Does a party have the right to  audit the books, records, or physical locations of the counterparty to ensure compliance with the contract?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "The frequency of such audits shall not exceed one audit per site within three years",
+    "expected_contains": [
+      "frequency",
+      "such",
+      "audits"
+    ],
+    "expected_page": 4,
+    "answer_start_char": 11907,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q034",
+    "query": "Highlight the parts (if any) of this contract related to \"Cap On Liability\" that should be reviewed by a lawyer. Details: Does the contract include a cap on liability upon the breach of a party’s obligation? This includes time limitation for the counterparty to bring claims or maximum amount for recovery.",
+    "expected_clause_type": "Cap on Liability",
+    "expected_contract_id": "contract_001",
+    "expected_answer_text": "IN NO EVENT SHALL SELLER BE LIABLE FOR SPECIAL, INCIDENTAL, CONSEQUENTIAL OR EXEMPLARY DAMAGES.",
+    "expected_contains": [
+      "EVENT",
+      "SHALL",
+      "SELLER"
+    ],
+    "expected_page": 10,
+    "answer_start_char": 35144,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q035",
+    "query": "Highlight the parts (if any) of this contract related to \"Document Name\" that should be reviewed by a lawyer. Details: The name of the contract",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_003",
+    "expected_answer_text": "SUPPLIER/SUBCONTRACTOR CONTRACT",
+    "expected_contains": [
+      "SUPPLIER/SUBCONTRACTOR",
+      "CONTRACT"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 13,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q036",
+    "query": "Highlight the parts (if any) of this contract related to \"Parties\" that should be reviewed by a lawyer. Details: The two or more parties who signed the contract",
+    "expected_clause_type": "Parties",
+    "expected_contract_id": "contract_003",
+    "expected_answer_text": "PLAYBOY.COM, INC.",
+    "expected_contains": [
+      "PLAYBOY.COM,",
+      "INC."
+    ],
+    "expected_page": 2,
+    "answer_start_char": 3338,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q037",
+    "query": "Highlight the parts (if any) of this contract related to \"Non-Compete\" that should be reviewed by a lawyer. Details: Is there a restriction on the ability of a party to compete with the counterparty or operate in a certain geography or business or technology sector?",
+    "expected_clause_type": "Non-Compete",
+    "expected_contract_id": "contract_003",
+    "expected_answer_text": "Supplier further agrees that it will not produce,  cause to be produced or assist in the production of more units than are specified by Purchaser nor will Supplier produce, cause to be produced or assist in the production of any product or item not specifically requested by Purchaser using any  or all of the Playboy Properties or any trademark, copyright, designations, names, phrases, designs or symbols similar to  any or all of the Playboy Properties during or at any time after the completion of merchandise requested by this Contract.",
+    "expected_contains": [
+      "Supplier",
+      "further",
+      "agrees"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 1596,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q038",
+    "query": "Highlight the parts (if any) of this contract related to \"Third Party Beneficiary\" that should be reviewed by a lawyer. Details: Is there a non-contracting party who is a beneficiary to some or all of the clauses in the contract and therefore can enforce its rights against a contracting party?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_003",
+    "expected_answer_text": "Playboy is an intended third-party beneficiary of this Contract.",
+    "expected_contains": [
+      "Playboy",
+      "intended",
+      "third-party"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 2393,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q039",
+    "query": "Highlight the parts (if any) of this contract related to \"Document Name\" that should be reviewed by a lawyer. Details: The name of the contract",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "CONTENT LICENSE, MARKETING AND SALES AGREEMENT",
+    "expected_contains": [
+      "CONTENT",
+      "LICENSE,",
+      "MARKETING"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 370,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q040",
+    "query": "Highlight the parts (if any) of this contract related to \"Parties\" that should be reviewed by a lawyer. Details: The two or more parties who signed the contract",
+    "expected_clause_type": "Parties",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "Playboy.com, Inc.",
+    "expected_contains": [
+      "Playboy.com,",
+      "Inc."
+    ],
+    "expected_page": 1,
+    "answer_start_char": 898,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q041",
+    "query": "Highlight the parts (if any) of this contract related to \"Agreement Date\" that should be reviewed by a lawyer. Details: The date of the contract",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "January 15, 2008",
+    "expected_contains": [
+      "January",
+      "2008"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 472,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q042",
+    "query": "Highlight the parts (if any) of this contract related to \"Effective Date\" that should be reviewed by a lawyer. Details: The date when the contract is effective",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "January 15, 2008",
+    "expected_contains": [
+      "January",
+      "2008"
+    ],
+    "expected_page": 1,
+    "answer_start_char": 472,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q043",
+    "query": "Highlight the parts (if any) of this contract related to \"Expiration Date\" that should be reviewed by a lawyer. Details: On what date will the contract's initial term expire?",
+    "expected_clause_type": "Expiration Date",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "This Agreement shall commence as of the Effective Date and, unless earlier terminated as provided under  this Agreement, shall terminate five (5) years following the date of launch of the first Website, but in no event later than February  28, 2013 (the \"Initial Term\").",
+    "expected_contains": [
+      "This",
+      "Agreement",
+      "shall"
+    ],
+    "expected_page": 24,
+    "answer_start_char": 83236,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q044",
+    "query": "Highlight the parts (if any) of this contract related to \"Renewal Term\" that should be reviewed by a lawyer. Details: What is the renewal term after the initial term expires? This includes automatic extensions and unilateral extensions with prior notice.",
+    "expected_clause_type": "Renewal Term",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "This Agreement shall automatically renew for an additional period of three (3) years (such renewal  and each subsequent renewal shall be defined as a \"Renewal Term\") provided that EFS achieves Net Merchandise Sales of at  least ***** during the fourth year following launch of the first Website.",
+    "expected_contains": [
+      "This",
+      "Agreement",
+      "shall"
+    ],
+    "expected_page": 24,
+    "answer_start_char": 83507,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q045",
+    "query": "Highlight the parts (if any) of this contract related to \"Governing Law\" that should be reviewed by a lawyer. Details: Which state/country's law governs the interpretation of the contract?",
+    "expected_clause_type": "Governing Law",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "This Agreement shall be governed by and construed in accordance with the laws  of the Illinois without giving effect to its conflict of laws principles.",
+    "expected_contains": [
+      "This",
+      "Agreement",
+      "shall"
+    ],
+    "expected_page": 30,
+    "answer_start_char": 101547,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q046",
+    "query": "Highlight the parts (if any) of this contract related to \"Most Favored Nation\" that should be reviewed by a lawyer. Details: Is there a clause that if a third party gets better terms on the licensing or sale of technology/goods/services described in the contract, the buyer of such technology/goods/services under the contract shall be entitled to those better terms?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "The parties agree that Client will not be  charged a higher fee than what is being made available by EFS to its other Clients for similar services.",
+    "expected_contains": [
+      "parties",
+      "agree",
+      "that"
+    ],
+    "expected_page": 6,
+    "answer_start_char": 19322,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q047",
+    "query": "Highlight the parts (if any) of this contract related to \"Non-Compete\" that should be reviewed by a lawyer. Details: Is there a restriction on the ability of a party to compete with the counterparty or operate in a certain geography or business or technology sector?",
+    "expected_clause_type": "Non-Compete",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "Upon written request of Client, EFS shall discontinue or modify  any Advertisement that in the reasonable opinion of Client is not appropriate for the Client brand or is competitive with Client  business.",
+    "expected_contains": [
+      "Upon",
+      "written",
+      "request"
+    ],
+    "expected_page": 14,
+    "answer_start_char": 48191,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q048",
+    "query": "Highlight the parts (if any) of this contract related to \"Exclusivity\" that should be reviewed by a lawyer. Details: Is there an exclusive dealing  commitment with the counterparty? This includes a commitment to procure all “requirements” from one party of certain technology, goods, or services or a prohibition on licensing or selling technology, goods or services to third parties, or a prohibition on  collaborating or working with other parties), whether during the contract or  after the contract ends (or both).",
+    "expected_clause_type": "Parties",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "Subject to Client's prior written approval in each case, EFS shall have the right to work  with Client's manufacturers for the production of Merchandise that will be designed and offered for sale exclusively via the  Playboy Commerce Business.",
+    "expected_contains": [
+      "Subject",
+      "Client's",
+      "prior"
+    ],
+    "expected_page": 10,
+    "answer_start_char": 35505,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q049",
+    "query": "Highlight the parts (if any) of this contract related to \"Non-Disparagement\" that should be reviewed by a lawyer. Details: Is there a requirement on a party not to disparage the counterparty?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "EFS and its affiliates conduct their activities, both relating to the Playboy Commerce Business and otherwise, in a way that does  not jeopardize the Playboy Marks or the reputation and image of any Playboy entity or activity.",
+    "expected_contains": [
+      "affiliates",
+      "conduct",
+      "their"
+    ],
+    "expected_page": 38,
+    "answer_start_char": 108252,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q050",
+    "query": "Highlight the parts (if any) of this contract related to \"Rofr/Rofo/Rofn\" that should be reviewed by a lawyer. Details: Is there a clause granting one party a right of first refusal, right of first offer or right of first negotiation to purchase, license, market, or distribute equity interest, technology, assets, products or services?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "EFS agrees that it shall approach Licensees regarding any planned  EFS Produced Merchandise and give such Licensees a seven (7) day right of first refusal with respect to the design and  manufacture thereof, whereby EFS may set forth commercially reasonable requirements with respect to pricing, delivery and  product specifications.",
+    "expected_contains": [
+      "agrees",
+      "that",
+      "shall"
+    ],
+    "expected_page": 9,
+    "answer_start_char": 30926,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q051",
+    "query": "Highlight the parts (if any) of this contract related to \"Anti-Assignment\" that should be reviewed by a lawyer. Details: Is consent or notice required of a party if the contract is assigned to a third party?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "Notwithstanding the foregoing, this Agreement and all  rights and duties hereunder shall not, without the prior written consent of Client, in any manner be assigned, mortgaged, licensed,  or otherwise transferred or encumbered by EFS or by operation of law; provided, however, that EFS may assign this Agreement  to an acquirer of all or substantially all of its assets without Client's consent, but only in the event that in Client's reasonable  determination (a) key EFS management (as defined by Client at the time of acquisition) will remain indefinitely with EFS or  replacement management is reasonably acceptable to Client and no less experienced than those in place as of the Effective Date  hereof; (b) the acquirer can demonstrate to Client's reasonable satisfaction the availability of financial resources, and the ability  and intention, to",
+    "expected_contains": [
+      "Notwithstanding",
+      "foregoing,",
+      "this"
+    ],
+    "expected_page": 27,
+    "answer_start_char": 95903,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q052",
+    "query": "Highlight the parts (if any) of this contract related to \"Revenue/Profit Sharing\" that should be reviewed by a lawyer. Details: Is one party required to share revenue or profit with the counterparty for any technology, goods, or services?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "EFS shall pay a royalty (\"Royalty\") to Client to be calculated and paid as follows: (a) the Royalty shall be  determined based upon the percentage applicable to the Merchandise Gross Margin (pursuant to the chart in Exhibit 10, attached  hereto and hereby incorporated by reference); (b) multiplied by the Net Merchandise Sales (as defined below) as applicable in  each case for the applicable Calendar Quarter or Year (each as defined below).",
+    "expected_contains": [
+      "shall",
+      "royalty",
+      "(\"Royalty\")"
+    ],
+    "expected_page": 17,
+    "answer_start_char": 57709,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q053",
+    "query": "Highlight the parts (if any) of this contract related to \"Minimum Commitment\" that should be reviewed by a lawyer. Details: Is there a minimum order size or minimum amount or units per-time period that one party must buy from the counterparty under the contract?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "In the event EFS does not meet the full amount of the Minimum Royalty during the applicable  Year in which such Minimum Royalty was owed to Client, EFS will not be permitted to offset the shortfall with any overages from  any previous or subsequent Year, and a new Minimum Royalty will be due as set forth in this Section 6.2.",
+    "expected_contains": [
+      "event",
+      "does",
+      "meet"
+    ],
+    "expected_page": 17,
+    "answer_start_char": 60700,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q054",
+    "query": "Highlight the parts (if any) of this contract related to \"Volume Restriction\" that should be reviewed by a lawyer. Details: Is there a fee increase or consent requirement, etc. if one party’s use of the product/services exceeds certain threshold?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "At Client's cost for materials (but excluding costs for labor or other EFS  charges), EFS agrees to include up to two (2) inserts per month in each of the Catalogs and up to two (2) onserts per month in all  outgoing Merchandise packaging, promoting Client products and services and/or those of Client's affiliates, Licensees or  sponsors.",
+    "expected_contains": [
+      "Client's",
+      "cost",
+      "materials"
+    ],
+    "expected_page": 14,
+    "answer_start_char": 49464,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q055",
+    "query": "Highlight the parts (if any) of this contract related to \"Ip Ownership Assignment\" that should be reviewed by a lawyer. Details: Does intellectual property created  by one party become the property of the counterparty, either per the terms of the contract or upon the occurrence of certain events?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "EFS hereby irrevocably assigns, and Client hereby accepts, all right,  title and interest in and to each and every Authorized Modification, and EFS agrees to cooperate with all reasonable requests by  Client to effect or perfect such assignment.",
+    "expected_contains": [
+      "hereby",
+      "irrevocably",
+      "assigns,"
+    ],
+    "expected_page": 21,
+    "answer_start_char": 72952,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q056",
+    "query": "Highlight the parts (if any) of this contract related to \"Joint Ip Ownership\" that should be reviewed by a lawyer. Details: Is there any clause providing for joint or shared ownership of intellectual property between the parties to the contract?",
+    "expected_clause_type": "Parties",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "Client and EFS shall jointly own and have rights to all User Data  collected hereunder provided, however, that EFS shall only use the User Data in strict accordance with the Privacy Policy and,  subject to the remainder of this Section 5, solely in connection with the Playboy Commerce Business.",
+    "expected_contains": [
+      "Client",
+      "shall",
+      "jointly"
+    ],
+    "expected_page": 15,
+    "answer_start_char": 51877,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q057",
+    "query": "Highlight the parts (if any) of this contract related to \"License Grant\" that should be reviewed by a lawyer. Details: Does the contract contain a license granted by one party to its counterparty?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "Client hereby grants  to EFS a limited and perpetual right and license to use such photographs and materials for research and forecasting purposes,  including, but not limited to, combining the same with reports and analytics concerning the performance of the Websites, providing  information to strategic partners to better define consumer purchasing habits, and for trend forecasting and planning purposes.",
+    "expected_contains": [
+      "Client",
+      "hereby",
+      "grants"
+    ],
+    "expected_page": 5,
+    "answer_start_char": 14306,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q058",
+    "query": "Highlight the parts (if any) of this contract related to \"Non-Transferable License\" that should be reviewed by a lawyer. Details: Does the contract limit the ability of a party to transfer the license being granted to a third party?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "Business.",
+    "expected_contains": [
+      "Business."
+    ],
+    "expected_page": 1,
+    "answer_start_char": 2764,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q059",
+    "query": "Highlight the parts (if any) of this contract related to \"Irrevocable Or Perpetual License\" that should be reviewed by a lawyer. Details: Does the contract contain a  license grant that is irrevocable or perpetual?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "Client hereby grants  to EFS a limited and perpetual right and license to use such photographs and materials for research and forecasting purposes,  including, but not limited to, combining the same with reports and analytics concerning the performance of the Websites, providing  information to strategic partners to better define consumer purchasing habits, and for trend forecasting and planning purposes.",
+    "expected_contains": [
+      "Client",
+      "hereby",
+      "grants"
+    ],
+    "expected_page": 5,
+    "answer_start_char": 14306,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q060",
+    "query": "Highlight the parts (if any) of this contract related to \"Post-Termination Services\" that should be reviewed by a lawyer. Details: Is a party subject to obligations after the termination or expiration of a contract, including any post-termination transition, payment, transfer of IP, wind-down, last-buy, or similar commitments?",
+    "expected_clause_type": "Expiration Date",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "(g) If so requested by Client in connection with a planned or potential continuation of the business, EFS shall  cooperate with Client and its affiliates in order to transfer any remaining operations to them or any other entity that Client may so  designate without interruption of the Playboy Commerce Business' availability.",
+    "expected_contains": [
+      "requested",
+      "Client",
+      "connection"
+    ],
+    "expected_page": 25,
+    "answer_start_char": 85996,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q061",
+    "query": "Highlight the parts (if any) of this contract related to \"Audit Rights\" that should be reviewed by a lawyer. Details: Does a party have the right to  audit the books, records, or physical locations of the counterparty to ensure compliance with the contract?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "During the Term of this Agreement and for two (2) years  thereafter, (a) EFS shall maintain complete and accurate books and records relating to revenue generated under this Agreement;  and (b) Client and/or its authorized representative(s) shall have the right to examine, review, copy and audit EFS' books and  records relating to revenue generated under this Agreement to verify the accuracy of the payments and associated information  provided by EFS and to verify EFS' compliance with the terms and conditions of this Agreement.",
+    "expected_contains": [
+      "During",
+      "Term",
+      "this"
+    ],
+    "expected_page": 19,
+    "answer_start_char": 67451,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q062",
+    "query": "Highlight the parts (if any) of this contract related to \"Uncapped Liability\" that should be reviewed by a lawyer. Details: Is a party’s liability uncapped upon the breach of its obligation in the contract? This also includes uncap liability for a particular type of breach such as IP infringement or breach of confidentiality obligation.",
+    "expected_clause_type": "Cap on Liability",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "EXCEPT IN THE EVENT OF A BREACH OF SECTION 8 (CONFIDENTIALITY) OR  LIABILITY ARISING UNDER A PARTY'S INDEMNIFICATION OBLIGATIONS UNDER SECTION 12, IN NO  EVENT SHALL EITHER PARTY BE LIABLE FOR ANY INDIRECT, SPECIAL, INCIDENTAL, PUNITIVE OR  CONSEQUENTIAL DAMAGES ARISING OUT OF OR IN ANY WAY CONNECTED WITH THIS AGREEMENT OR  ANY MATTER RELATED HERETO, INCLUDING WITHOUT LIMITATION, LOST BUSINESS OR LOST PROFITS,  EVEN IF SUCH PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.",
+    "expected_contains": [
+      "EXCEPT",
+      "EVENT",
+      "BREACH"
+    ],
+    "expected_page": 27,
+    "answer_start_char": 94041,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q063",
+    "query": "Highlight the parts (if any) of this contract related to \"Cap On Liability\" that should be reviewed by a lawyer. Details: Does the contract include a cap on liability upon the breach of a party’s obligation? This includes time limitation for the counterparty to bring claims or maximum amount for recovery.",
+    "expected_clause_type": "Cap on Liability",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "EXCEPT IN THE EVENT OF A BREACH OF SECTION 8 (CONFIDENTIALITY) OR  LIABILITY ARISING UNDER A PARTY'S INDEMNIFICATION OBLIGATIONS UNDER SECTION 12, IN NO  EVENT SHALL EITHER PARTY BE LIABLE FOR ANY INDIRECT, SPECIAL, INCIDENTAL, PUNITIVE OR  CONSEQUENTIAL DAMAGES ARISING OUT OF OR IN ANY WAY CONNECTED WITH THIS AGREEMENT OR  ANY MATTER RELATED HERETO, INCLUDING WITHOUT LIMITATION, LOST BUSINESS OR LOST PROFITS,  EVEN IF SUCH PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.",
+    "expected_contains": [
+      "EXCEPT",
+      "EVENT",
+      "BREACH"
+    ],
+    "expected_page": 27,
+    "answer_start_char": 94041,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  },
+  {
+    "query_id": "q064",
+    "query": "Highlight the parts (if any) of this contract related to \"Insurance\" that should be reviewed by a lawyer. Details: Is there a requirement for insurance that must be maintained by one party for the benefit of the counterparty?",
+    "expected_clause_type": "General",
+    "expected_contract_id": "contract_002",
+    "expected_answer_text": "Such notice shall include written confirmation and details of replacement insurance coverages and  other material revisions to the policies, which shall be effective immediately upon any cancellation or material change in EFS'  policies in order that no gap in coverage results.",
+    "expected_contains": [
+      "Such",
+      "notice",
+      "shall"
+    ],
+    "expected_page": 7,
+    "answer_start_char": 21583,
+    "source": "cuad_annotation_auto",
+    "notes": ""
+  }
+]

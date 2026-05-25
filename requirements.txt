@@ -1,0 +1,11 @@
+pymupdf
+paddleocr
+paddlepaddle-gpu
+chromadb
+llama-index
+rank_bm25
+anthropic
+openai
+streamlit
+sentence-transformers
+sqlalchemy

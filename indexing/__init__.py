@@ -1,0 +1,1 @@
+"""Contract index stores."""

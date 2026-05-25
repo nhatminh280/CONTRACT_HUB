@@ -1,0 +1,47 @@
+[
+  {
+    "contract_id": "contract_001",
+    "original_pdf_name": "WestPharmaceuticalServicesInc_20200116_8-K_EX-10.1_11947529_EX-10.1_Supply Agreement.pdf",
+    "pdf_path": "data/raw/cuad_sample/contract_001.pdf",
+    "txt_path": "data/raw/cuad_sample/contract_001.txt",
+    "scan_dir": "data/raw/scanned_simulated/contract_001",
+    "page_count": 25,
+    "sampled_rendered_pages": 5
+  },
+  {
+    "contract_id": "contract_002",
+    "original_pdf_name": "PlayboyEnterprisesInc_20090220_10-QA_EX-10.2_4091580_EX-10.2_Content License Agreement_ Marketing Agreement_ Sales-Purchase Agreement1.pdf",
+    "pdf_path": "data/raw/cuad_sample/contract_002.pdf",
+    "txt_path": "data/raw/cuad_sample/contract_002.txt",
+    "scan_dir": "data/raw/scanned_simulated/contract_002",
+    "page_count": 45,
+    "sampled_rendered_pages": 5
+  },
+  {
+    "contract_id": "contract_003",
+    "original_pdf_name": "PlayboyEnterprisesInc_20090220_10-QA_EX-10.2_4091580_EX-10.2_Content License Agreement_ Marketing Agreement_ Sales-Purchase Agreement2.pdf",
+    "pdf_path": "data/raw/cuad_sample/contract_003.pdf",
+    "txt_path": "data/raw/cuad_sample/contract_003.txt",
+    "scan_dir": "data/raw/scanned_simulated/contract_003",
+    "page_count": 2,
+    "sampled_rendered_pages": 2
+  },
+  {
+    "contract_id": "contract_004",
+    "original_pdf_name": "KUBIENT,INC_07_02_2020-EX-10.14-MASTER SERVICES AGREEMENT_Part1.pdf",
+    "pdf_path": "data/raw/cuad_sample/contract_004.pdf",
+    "txt_path": "data/raw/cuad_sample/contract_004.txt",
+    "scan_dir": "data/raw/scanned_simulated/contract_004",
+    "page_count": 5,
+    "sampled_rendered_pages": 5
+  },
+  {
+    "contract_id": "contract_005",
+    "original_pdf_name": "KUBIENT,INC_07_02_2020-EX-10.14-MASTER SERVICES AGREEMENT_Part2.pdf",
+    "pdf_path": "data/raw/cuad_sample/contract_005.pdf",
+    "txt_path": "data/raw/cuad_sample/contract_005.txt",
+    "scan_dir": "data/raw/scanned_simulated/contract_005",
+    "page_count": 2,
+    "sampled_rendered_pages": 2
+  }
+]

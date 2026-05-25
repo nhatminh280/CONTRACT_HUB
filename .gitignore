@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+outputs/
+*.zip
+
+data/raw/*
+data/processed/*
+data/index/*
+data/ground_truth/cuad_annotations/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/index/.gitkeep
