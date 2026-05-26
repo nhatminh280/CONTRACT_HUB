@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict, dataclass
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import re
@@ -13,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from generation.answer import answer_with_citations
 from indexing.bm25_store import BM25Store
 from ingestion.chunker import Chunk, chunk_blocks
 from retrieval.hybrid_search import ScoredChunk, fuse
@@ -31,6 +33,10 @@ CUAD_QUERY_EXPANSIONS = {
 }
 
 
+def has_module(name: str) -> bool:
+    return importlib.util.find_spec(name) is not None
+
+
 @dataclass(frozen=True)
 class QueryEvaluation:
     query_id: str
@@ -44,6 +50,7 @@ class QueryEvaluation:
     citation_correct: bool
     answer_contains_expected: bool
     matched_rank: int | None = None
+    answer: str | None = None
 
 
 @dataclass(frozen=True)
@@ -159,13 +166,22 @@ def _matches_case(chunk: Chunk, case: dict[str, Any]) -> bool:
 def evaluate_ranked_results(
     test_cases: list[dict[str, Any]],
     ranked_chunks_by_query_id: dict[str, list[Chunk]],
+    answers_by_query_id: dict[str, str] | None = None,
+    use_llm_answer: bool = False,
 ) -> list[QueryEvaluation]:
     evaluations: list[QueryEvaluation] = []
+    answers_by_query_id = answers_by_query_id or {}
     for case in test_cases:
         hits = ranked_chunks_by_query_id.get(case["query_id"], [])[:3]
         matched_rank = next((index for index, chunk in enumerate(hits, start=1) if _matches_case(chunk, case)), None)
         matched = hits[matched_rank - 1] if matched_rank is not None else None
         top = hits[0] if hits else None
+        answer = answers_by_query_id.get(case["query_id"])
+        answer_contains_expected = (
+            _contains_expected(answer or "", case["expected_contains"])
+            if use_llm_answer
+            else matched is not None and _contains_expected(matched.text, case["expected_contains"])
+        )
         evaluations.append(
             QueryEvaluation(
                 query_id=case["query_id"],
@@ -177,20 +193,34 @@ def evaluate_ranked_results(
                 matched_citation=matched.citation if matched else None,
                 precision_at_3_hit=matched is not None,
                 citation_correct=matched is not None,
-                answer_contains_expected=matched is not None and _contains_expected(matched.text, case["expected_contains"]),
+                answer_contains_expected=answer_contains_expected,
                 matched_rank=matched_rank,
+                answer=answer,
             )
         )
     return evaluations
 
 
-def evaluate_cases(test_cases: list[dict[str, Any]], chunks: list[Chunk], top_k: int = 3) -> list[QueryEvaluation]:
+def evaluate_cases(
+    test_cases: list[dict[str, Any]],
+    chunks: list[Chunk],
+    top_k: int = 3,
+    use_llm_answer: bool = False,
+) -> list[QueryEvaluation]:
     ranked: dict[str, list[Chunk]] = {}
+    answers: dict[str, str] = {}
     for case in test_cases:
         scoped_chunks = [chunk for chunk in chunks if chunk.contract_id == case["expected_contract_id"]]
         hits = retrieve_ranked_chunks(focused_query(case), scoped_chunks, top_k=top_k)
         ranked[case["query_id"]] = [hit.chunk for hit in hits]
-    return evaluate_ranked_results(test_cases, ranked)
+        if use_llm_answer:
+            answers[case["query_id"]] = answer_with_citations(case["query"], hits)
+    return evaluate_ranked_results(
+        test_cases,
+        ranked,
+        answers_by_query_id=answers,
+        use_llm_answer=use_llm_answer,
+    )
 
 
 def summarize_evaluations(evaluations: list[QueryEvaluation]) -> EvaluationSummary:
@@ -224,10 +254,31 @@ def enforce_thresholds(
         raise SystemExit(1)
 
 
-def run_evaluation(contract_ids: list[str], limit: int) -> tuple[EvaluationSummary, list[QueryEvaluation]]:
+def validate_llm_mode(use_llm_answer: bool) -> None:
+    if not use_llm_answer:
+        return
+    from config.llm import llm_api_key, llm_provider
+
+    provider = llm_provider()
+    if not llm_api_key(provider=provider):
+        key_name = {
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+        }.get(provider, "GEMINI_API_KEY")
+        raise SystemExit(f"{key_name} is required when LLM flags are enabled.")
+    required_module = "anthropic" if provider == "anthropic" else "openai"
+    if not has_module(required_module):
+        raise SystemExit(f"The {required_module} package is required when LLM flags are enabled.")
+
+
+def run_evaluation(
+    contract_ids: list[str],
+    limit: int,
+    use_llm_answer: bool = False,
+) -> tuple[EvaluationSummary, list[QueryEvaluation]]:
     chunks = build_chunks(contract_ids)
     cases = load_test_cases(ROOT / "data" / "ground_truth" / "test_cases.json", contract_ids, limit=limit)
-    evaluations = evaluate_cases(cases, chunks)
+    evaluations = evaluate_cases(cases, chunks, use_llm_answer=use_llm_answer)
     return summarize_evaluations(evaluations), evaluations
 
 
@@ -243,7 +294,7 @@ def render_markdown(summary: EvaluationSummary, evaluations: list[QueryEvaluatio
         f"- Precision@3: `{summary.precision_at_3:.3f}`",
         f"- Citation accuracy: `{summary.citation_accuracy:.3f}`",
         f"- Answer contains expected text: `{summary.answer_contains_accuracy:.3f}`",
-        "- Answer faithfulness: `not run`; Gemini LLM-as-judge is still pending.",
+        "- Answer faithfulness: `not run`; LLM-as-judge is still pending.",
         "",
         "## Cases",
     ]
@@ -260,6 +311,7 @@ def render_markdown(summary: EvaluationSummary, evaluations: list[QueryEvaluatio
                 f"- Precision@3 hit: `{item.precision_at_3_hit}`",
                 f"- Citation correct: `{item.citation_correct}`",
                 f"- Answer contains expected text: `{item.answer_contains_expected}`",
+                f"- Answer: `{item.answer or 'not generated'}`",
                 "",
             ]
         )
@@ -288,7 +340,15 @@ def write_results(
     )
 
 
-def parse_args() -> argparse.Namespace:
+def display_path(path: Path) -> str:
+    resolved = path if path.is_absolute() else ROOT / path
+    try:
+        return str(resolved.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate Contract Hub retrieval and citation quality.")
     parser.add_argument("--contracts", nargs="+", default=DEFAULT_CONTRACT_IDS)
     parser.add_argument("--limit", type=int, default=DEFAULT_LIMIT)
@@ -296,14 +356,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--json-output", type=Path, default=DEFAULT_JSON_PATH)
     parser.add_argument("--min-precision-at-3", type=float, default=DEFAULT_MIN_PRECISION_AT_3)
     parser.add_argument("--min-citation-accuracy", type=float, default=DEFAULT_MIN_CITATION_ACCURACY)
-    return parser.parse_args()
+    parser.add_argument("--use-llm-answer", action="store_true")
+    return parser.parse_args(argv)
 
 
 def main() -> None:
     args = parse_args()
-    summary, evaluations = run_evaluation(args.contracts, args.limit)
+    validate_llm_mode(args.use_llm_answer)
+    summary, evaluations = run_evaluation(args.contracts, args.limit, use_llm_answer=args.use_llm_answer)
     write_results(summary, evaluations, args.contracts, args.output, args.json_output)
-    print(f"Wrote {args.output.relative_to(ROOT)}")
+    print(f"Wrote {display_path(args.output)}")
     print(f"Precision@3: {summary.precision_at_3:.3f}")
     print(f"Citation accuracy: {summary.citation_accuracy:.3f}")
     try:

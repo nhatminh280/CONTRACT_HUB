@@ -5,7 +5,7 @@ import json
 import re
 from typing import Any
 
-from config.llm import gemini_api_key, gemini_base_url, gemini_model
+from config.llm import llm_api_key, llm_base_url, llm_model, llm_provider
 from indexing.sql_store import ContractRecord
 from ingestion.chunker import Chunk
 
@@ -14,23 +14,135 @@ EXTRACTION_PROMPT = """Extract contract metadata as strict JSON with:
 contract_id, title, parties, effective_date, expiry_date, contract_value,
 currency, governing_law, clauses.
 Each clause must include clause_number, clause_type, page, summary.
-Return JSON only."""
+Return one valid JSON object only. Do not use markdown, bullet lists, or code fences."""
 
 
-def extract_structured_json(text: str, api_key: str | None = None, model: str = "gemini-3.5-flash") -> dict[str, Any]:
-    """Extract structured contract data through Gemini's OpenAI-compatible API."""
+def extract_structured_json(text: str, api_key: str | None = None, model: str | None = None) -> dict[str, Any]:
+    """Extract structured contract data through the configured OpenAI-compatible API."""
     from openai import OpenAI
 
-    client = OpenAI(api_key=gemini_api_key(api_key), base_url=gemini_base_url())
+    provider = llm_provider()
+    if provider == "anthropic":
+        from config.anthropic_client import create_anthropic_text
+
+        content = create_anthropic_text(
+            system=EXTRACTION_PROMPT,
+            user_content=text,
+            max_tokens=4000,
+            model=model,
+        )
+        return json.loads(content or "{}")
+
+    client = OpenAI(api_key=llm_api_key(api_key, provider=provider), base_url=llm_base_url(provider=provider))
     response = client.chat.completions.create(
-        model=gemini_model(model),
+        model=llm_model(model, provider=provider),
         messages=[
             {"role": "system", "content": EXTRACTION_PROMPT},
             {"role": "user", "content": text},
         ],
-        max_tokens=2000,
+        max_tokens=4000,
+        temperature=0,
+        response_format={"type": "json_object"},
     )
     return json.loads(response.choices[0].message.content or "{}")
+
+
+def format_chunks_for_llm_extraction(chunks: list[Chunk], max_chars: int = 16000) -> str:
+    parts = []
+    for chunk in chunks:
+        excerpt = " ".join(chunk.text.split())[:1500]
+        page = str(chunk.page_start) if chunk.page_start == chunk.page_end else f"{chunk.page_start}-{chunk.page_end}"
+        parts.append(
+            "\n".join(
+                [
+                    f"Contract: {chunk.contract_id}",
+                    f"Citation: {chunk.citation}",
+                    f"Clause: {chunk.clause_number}",
+                    f"Page: {page}",
+                    f"Text: {excerpt}",
+                ]
+            )
+        )
+    text = "\n\n".join(parts)
+    return text[:max_chars]
+
+
+def _chunk_clauses(chunks: list[Chunk]) -> list[dict[str, Any]]:
+    return [
+        {
+            "number": chunk.clause_number,
+            "type": chunk.clause_type,
+            "page": chunk.page_start,
+            "summary": chunk.text[:240].replace("\n", " "),
+        }
+        for chunk in chunks
+    ]
+
+
+def _coerce_float(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    cleaned = re.sub(r"[^0-9.\-]", "", str(value))
+    if not cleaned:
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def _normalize_parties(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    parties = []
+    for party in value:
+        if isinstance(party, str):
+            name = party.strip()
+            if name:
+                parties.append({"name": name, "role": "party"})
+            continue
+        if isinstance(party, dict):
+            name = str(party.get("name") or party.get("party") or "").strip()
+            if name:
+                parties.append({"name": name, "role": party.get("role") or "party"})
+    return parties
+
+
+def _normalize_clauses(value: Any, chunks: list[Chunk]) -> list[dict[str, Any]]:
+    if not isinstance(value, list) or not value:
+        return _chunk_clauses(chunks)
+
+    clauses = []
+    for clause in value:
+        if not isinstance(clause, dict):
+            continue
+        number = clause.get("number") or clause.get("clause_number")
+        summary = clause.get("summary") or clause.get("text") or ""
+        clauses.append(
+            {
+                "number": number,
+                "type": clause.get("type") or clause.get("clause_type"),
+                "page": clause.get("page") or clause.get("page_start"),
+                "summary": str(summary),
+            }
+        )
+    return clauses or _chunk_clauses(chunks)
+
+
+def contract_record_from_llm_json(contract_id: str, payload: dict[str, Any], chunks: list[Chunk]) -> ContractRecord:
+    return ContractRecord(
+        contract_id=contract_id,
+        title=str(payload.get("title") or contract_id).strip(),
+        value=_coerce_float(payload.get("contract_value", payload.get("value"))),
+        currency=payload.get("currency"),
+        effective_date=payload.get("effective_date"),
+        expiry_date=payload.get("expiry_date"),
+        governing_law=payload.get("governing_law"),
+        parties=_normalize_parties(payload.get("parties")),
+        clauses=_normalize_clauses(payload.get("clauses"), chunks),
+    )
 
 
 MONTHS = {

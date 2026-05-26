@@ -5,6 +5,7 @@ chromadb
 llama-index
 rank_bm25
 openai
+anthropic
 streamlit
 sentence-transformers
 sqlalchemy

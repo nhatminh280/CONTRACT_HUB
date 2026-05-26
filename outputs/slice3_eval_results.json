@@ -1,0 +1,96 @@
+{
+  "summary": {
+    "total_cases": 5,
+    "precision_at_3": 1.0,
+    "citation_accuracy": 1.0,
+    "answer_contains_accuracy": 1.0
+  },
+  "cases": [
+    {
+      "query_id": "q001",
+      "query": "Highlight the parts (if any) of this contract related to \"Document Name\" that should be reviewed by a lawyer. Details: The name of the contract",
+      "expected_contract_id": "contract_005",
+      "expected_page": 2,
+      "expected_contains": [
+        "EXHIBIT"
+      ],
+      "top_citation": "[Document, trang 1, contract_005]",
+      "matched_citation": "[SCHEDULE 1 TO EXHIBIT 'B', trang 2, contract_005]",
+      "precision_at_3_hit": true,
+      "citation_correct": true,
+      "answer_contains_expected": true,
+      "matched_rank": 2,
+      "answer": null
+    },
+    {
+      "query_id": "q002",
+      "query": "Highlight the parts (if any) of this contract related to \"Parties\" that should be reviewed by a lawyer. Details: The two or more parties who signed the contract",
+      "expected_contract_id": "contract_005",
+      "expected_page": 1,
+      "expected_contains": [
+        "Kubient,",
+        "Inc."
+      ],
+      "top_citation": "[NON-SOLICITATION, trang 1, contract_005]",
+      "matched_citation": "[NON-SOLICITATION, trang 1, contract_005]",
+      "precision_at_3_hit": true,
+      "citation_correct": true,
+      "answer_contains_expected": true,
+      "matched_rank": 1,
+      "answer": null
+    },
+    {
+      "query_id": "q003",
+      "query": "Highlight the parts (if any) of this contract related to \"Agreement Date\" that should be reviewed by a lawyer. Details: The date of the contract",
+      "expected_contract_id": "contract_005",
+      "expected_page": 1,
+      "expected_contains": [
+        "26th",
+        "March",
+        "2020"
+      ],
+      "top_citation": "[Document, trang 1, contract_005]",
+      "matched_citation": "[Document, trang 1, contract_005]",
+      "precision_at_3_hit": true,
+      "citation_correct": true,
+      "answer_contains_expected": true,
+      "matched_rank": 1,
+      "answer": null
+    },
+    {
+      "query_id": "q004",
+      "query": "Highlight the parts (if any) of this contract related to \"Effective Date\" that should be reviewed by a lawyer. Details: The date when the contract is effective",
+      "expected_contract_id": "contract_005",
+      "expected_page": 1,
+      "expected_contains": [
+        "February",
+        "2020"
+      ],
+      "top_citation": "[Document, trang 1, contract_005]",
+      "matched_citation": "[Document, trang 1, contract_005]",
+      "precision_at_3_hit": true,
+      "citation_correct": true,
+      "answer_contains_expected": true,
+      "matched_rank": 1,
+      "answer": null
+    },
+    {
+      "query_id": "q005",
+      "query": "Highlight the parts (if any) of this contract related to \"No-Solicit Of Customers\" that should be reviewed by a lawyer. Details: Is a party restricted from contracting or soliciting customers or partners of the counterparty, whether during the contract or after the contract ends (or both)?",
+      "expected_contract_id": "contract_005",
+      "expected_page": 1,
+      "expected_contains": [
+        "During",
+        "Term",
+        "renewal"
+      ],
+      "top_citation": "[NON-SOLICITATION, trang 1, contract_005]",
+      "matched_citation": "[NON-SOLICITATION, trang 1, contract_005]",
+      "precision_at_3_hit": true,
+      "citation_correct": true,
+      "answer_contains_expected": true,
+      "matched_rank": 1,
+      "answer": null
+    }
+  ]
+}

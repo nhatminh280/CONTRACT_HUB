@@ -11,7 +11,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from config.env import load_env_file
-from config.llm import gemini_api_key
 from generation.answer import answer_with_citations
 from ingestion.chunker import Chunk, chunk_blocks
 from ingestion.ocr import PaddleOCRVLRunner
@@ -19,7 +18,18 @@ from ingestion.parser import parse_pdf
 from ingestion.router import route
 from retrieval.contract_browser import list_clause_types, list_clauses, list_contracts, list_parties
 from retrieval.query_engine import run_contract_query
+from ui.defaults import demo_bm25_path, demo_sqlite_path
 from ui.export import rows_to_csv
+from ui.uploads import (
+    SUPPORTED_UPLOAD_TYPES,
+    classify_uploads,
+    next_contract_id,
+    normalize_contract_id,
+    remove_contract_chunks,
+    replace_contract_chunks,
+    reset_upload_dir,
+    sanitize_widget_key,
+)
 
 
 DATA_RAW = ROOT / "data" / "raw"
@@ -28,146 +38,309 @@ load_env_file(ROOT / ".env")
 
 
 st.set_page_config(page_title="Digital Contract Hub", layout="wide")
-st.title("Digital Contract Hub")
 
 if "chunks" not in st.session_state:
     st.session_state["chunks"] = []
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
+if "pending_prompt" not in st.session_state:
+    st.session_state["pending_prompt"] = None
+if "uploader_key" not in st.session_state:
+    st.session_state["uploader_key"] = 0
 
-sqlite_path = st.sidebar.text_input(
-    "SQLite DB path",
-    value=str(ROOT / "outputs" / "slice2_multi_contract_index" / "contracts.sqlite"),
-)
+def citation_badge(chunk: Chunk) -> str:
+    page = str(chunk.page_start) if chunk.page_start == chunk.page_end else f"{chunk.page_start}-{chunk.page_end}"
+    return (
+        '<span style="background:#f0f4ff;border:1px solid #c7d7ff;border-radius:4px;'
+        'padding:2px 8px;font-size:0.78rem;color:#3b5bdb">'
+        f"{chunk.clause_number} · Page {page} · {chunk.contract_id}</span>"
+    )
 
-upload_tab, search_tab, browser_tab = st.tabs(["Upload PDF", "Search", "Contracts"])
 
-with upload_tab:
-    uploaded = st.file_uploader("Contract PDF", type=["pdf"])
-    contract_id = st.text_input("Contract ID", value="HD-2024-001")
-    if uploaded and st.button("Ingest"):
-        target = DATA_RAW / uploaded.name
-        target.write_bytes(uploaded.getbuffer())
-        with st.status("Ingesting contract", expanded=True) as status:
-            pdf_kind = route(str(target))
-            st.write(f"Detected: {pdf_kind}")
-            if pdf_kind == "text":
-                blocks = parse_pdf(str(target))
-            else:
-                ocr = PaddleOCRVLRunner()
-                blocks = ocr.parse(str(target))
-                ocr.unload()
-            chunks = chunk_blocks(blocks, contract_id=contract_id)
-            st.session_state["chunks"] = chunks
-            status.update(label=f"Ingested {len(chunks)} chunks", state="complete")
-        st.dataframe(
-            [{"citation": chunk.citation, "type": chunk.clause_type, "text": chunk.text[:240]} for chunk in st.session_state["chunks"]],
-            use_container_width=True,
+def grouped_contract_ids(chunks: list[Chunk]) -> list[str]:
+    return sorted({chunk.contract_id for chunk in chunks})
+
+
+def rows_for_hits(hits) -> list[dict]:
+    return [
+        {
+            "citation": hit.chunk.citation,
+            "contract_id": hit.chunk.contract_id,
+            "clause_number": hit.chunk.clause_number,
+            "page_start": hit.chunk.page_start,
+            "page_end": hit.chunk.page_end,
+            "text": hit.chunk.text,
+        }
+        for hit in hits
+    ]
+
+
+def extractive_fallback_answer(hits) -> str:
+    if not hits:
+        return (
+            "Answer:\nNot found in the provided context.\n\n"
+            "Evidence:\nNo relevant retrieved evidence was available.\n\n"
+            "Sources:\nNone\n\n"
+            "Confidence:\nLow\nNo relevant retrieved context was available.\n\n"
+            "Retrieved Context:\nNone"
         )
 
-with search_tab:
-    query = st.text_input("Search contracts")
-    if query:
-        chunks = st.session_state.get("chunks", [])
-        result = run_contract_query(query, chunks, db_path=sqlite_path)
-        st.caption(f"Intent: {result.intent}")
-        if result.structured_rows:
-            st.dataframe(result.structured_rows, use_container_width=True)
-            csv_text = rows_to_csv(result.structured_rows)
-            if csv_text:
-                st.download_button(
-                    "Export structured results CSV",
-                    data=csv_text,
-                    file_name="structured_search_results.csv",
-                    mime="text/csv",
-                )
-        elif not chunks:
-            st.warning("Upload and ingest a contract first, or use a structured query backed by SQLite.")
-        else:
-            with st.spinner("Generating cited answer"):
+    primary = hits[0].chunk
+    snippet = " ".join(primary.text.split())[:420]
+    source = primary.citation
+    return (
+        "Answer:\n"
+        "The exact answer could not be generated by the LLM, but the most relevant retrieved clause is shown below.\n\n"
+        "Evidence:\n"
+        f'"{snippet}"\n\n'
+        "Sources:\n"
+        f"- {source}\n\n"
+        "Confidence:\n"
+        "Medium\nBased on the top retrieved contract chunk, without LLM synthesis.\n\n"
+        "Retrieved Context:\n"
+        f"{source} {snippet}"
+    )
+
+
+def append_assistant_message(prompt: str, sqlite_path: str, bm25_path: str) -> None:
+    chunks = st.session_state.get("chunks", [])
+    result = run_contract_query(prompt, chunks, db_path=sqlite_path, bm25_path=bm25_path)
+    content = ""
+
+    if result.structured_rows:
+        content = "Structured results found."
+    elif not chunks and not Path(bm25_path).exists():
+        content = "Upload and ingest a contract first, or build the full corpus demo index."
+    else:
+        with st.spinner("Generating cited answer"):
+            try:
+                content = answer_with_citations(prompt, result.hits)
+            except Exception:
+                content = extractive_fallback_answer(result.hits)
+
+    st.session_state["messages"].append(
+        {
+            "role": "assistant",
+            "content": content or "Không có trong tài liệu.",
+            "citations": result.hits,
+            "intent": result.intent,
+            "structured_rows": result.structured_rows,
+        }
+    )
+
+
+with st.sidebar:
+    st.markdown("## Digital Contract Hub")
+    st.caption("Chat with contracts using cited retrieval.")
+
+    with st.expander("Upload Contract", expanded=True):
+        uploaded_files = st.file_uploader(
+            "Contract PDF or images",
+            type=SUPPORTED_UPLOAD_TYPES,
+            accept_multiple_files=True,
+            key=f"uploader_{st.session_state['uploader_key']}",
+        )
+        contract_id_raw = st.text_input("Contract ID", value="HD-2024-001")
+        if uploaded_files and st.button("Ingest", width="stretch"):
+            with st.status("Ingesting contract", expanded=True) as status:
                 try:
-                    answer = answer_with_citations(query, result.hits, api_key=gemini_api_key())
-                except Exception:
-                    answer = "\n\n".join(f"{hit.chunk.citation}\n{hit.chunk.text}" for hit in result.hits)
-            st.markdown(answer)
-            st.divider()
-            hit_rows = [
-                {
-                    "citation": hit.chunk.citation,
-                    "score": hit.score,
-                    "contract_id": hit.chunk.contract_id,
-                    "clause_number": hit.chunk.clause_number,
-                    "page_start": hit.chunk.page_start,
-                    "page_end": hit.chunk.page_end,
-                    "text": hit.chunk.text,
-                }
-                for hit in result.hits
-            ]
-            csv_text = rows_to_csv(hit_rows)
-            if csv_text:
-                st.download_button(
-                    "Export search results CSV",
-                    data=csv_text,
-                    file_name="search_results.csv",
-                    mime="text/csv",
+                    base_contract_id = normalize_contract_id(contract_id_raw)
+                except ValueError as exc:
+                    status.update(label=str(exc), state="error")
+                    st.stop()
+
+                try:
+                    upload_kind = classify_uploads([file.name for file in uploaded_files])
+                except ValueError as exc:
+                    status.update(label=str(exc), state="error")
+                    st.stop()
+
+                existing_chunks = list(st.session_state.get("chunks", []))
+                taken = {chunk.contract_id for chunk in existing_chunks}
+                new_chunks: list[Chunk] = []
+                overwritten: list[str] = []
+
+                if upload_kind == "pdf":
+                    ocr_runner: PaddleOCRVLRunner | None = None
+                    for index, uploaded in enumerate(uploaded_files):
+                        assigned = (
+                            base_contract_id
+                            if index == 0
+                            else next_contract_id(base_contract_id, taken)
+                        )
+                        if assigned in taken:
+                            overwritten.append(assigned)
+                        taken.add(assigned)
+
+                        target_dir = DATA_RAW / assigned
+                        reset_upload_dir(target_dir)
+                        target = target_dir / uploaded.name
+                        target.write_bytes(uploaded.getbuffer())
+                        pdf_kind = route(str(target))
+                        st.write(f"{assigned}: detected {pdf_kind} PDF")
+                        if pdf_kind == "text":
+                            blocks = parse_pdf(str(target))
+                        else:
+                            if ocr_runner is None:
+                                ocr_runner = PaddleOCRVLRunner(device="gpu:0")
+                            blocks = ocr_runner.parse(str(target))
+                        pdf_chunks = chunk_blocks(blocks, contract_id=assigned)
+                        existing_chunks = replace_contract_chunks(
+                            existing_chunks, pdf_chunks, assigned
+                        )
+                        new_chunks.extend(pdf_chunks)
+                    if ocr_runner is not None:
+                        ocr_runner.unload()
+                else:
+                    assigned = base_contract_id
+                    if assigned in taken:
+                        overwritten.append(assigned)
+                    taken.add(assigned)
+
+                    image_dir = DATA_RAW / "uploaded_images" / assigned
+                    reset_upload_dir(image_dir)
+                    for uploaded in uploaded_files:
+                        target = image_dir / uploaded.name
+                        target.write_bytes(uploaded.getbuffer())
+                    st.write(f"{assigned}: {len(uploaded_files)} contract image(s)")
+                    ocr = PaddleOCRVLRunner(device="gpu:0")
+                    blocks = ocr.parse_image_folder(str(image_dir), include_noisy=True)
+                    ocr.unload()
+                    image_chunks = chunk_blocks(blocks, contract_id=assigned)
+                    existing_chunks = replace_contract_chunks(
+                        existing_chunks, image_chunks, assigned
+                    )
+                    new_chunks.extend(image_chunks)
+
+                if overwritten:
+                    st.warning(
+                        "Overwrote existing chunks for: " + ", ".join(overwritten)
+                    )
+
+                if not new_chunks:
+                    status.update(
+                        label="No clauses extracted — check the source files.",
+                        state="error",
+                    )
+                    st.stop()
+
+                st.session_state["chunks"] = existing_chunks
+                status.update(
+                    label=f"Ingested {len(new_chunks)} chunks",
+                    state="complete",
+                    expanded=False,
                 )
-            for hit in result.hits:
-                with st.expander(hit.chunk.citation):
-                    st.write(hit.chunk.text)
-        if result.structured_error:
-            st.caption(result.structured_error)
+            st.session_state["uploader_key"] += 1
+            st.rerun()
 
-with browser_tab:
-    col_party, col_expiry = st.columns([2, 1])
-    with col_party:
-        party_query = st.text_input("Party filter")
-    with col_expiry:
-        expiry_before = st.date_input("Expiry before", value=None)
-
-    try:
-        contracts = list_contracts(
-            sqlite_path,
-            party_query=party_query or None,
-            expiry_before=expiry_before.isoformat() if expiry_before else None,
-        )
-    except Exception as exc:
-        st.warning(f"Could not load contracts: {exc}")
-        contracts = []
-
-    st.dataframe(contracts, use_container_width=True)
-    csv_text = rows_to_csv(contracts)
-    if csv_text:
-        st.download_button(
-            "Export contracts CSV",
-            data=csv_text,
-            file_name="contracts.csv",
-            mime="text/csv",
-        )
-    contract_ids = [row["id"] for row in contracts]
+    st.divider()
+    st.caption("Ingested contracts")
+    contract_ids = grouped_contract_ids(st.session_state.get("chunks", []))
     if contract_ids:
-        selected_contract = st.selectbox("Contract", contract_ids)
-        parties = list_parties(sqlite_path, selected_contract)
-        if parties:
-            st.dataframe(parties, use_container_width=True)
-            csv_text = rows_to_csv(parties)
-            if csv_text:
-                st.download_button(
-                    "Export parties CSV",
-                    data=csv_text,
-                    file_name=f"{selected_contract}_parties.csv",
-                    mime="text/csv",
+        for item in contract_ids:
+            slug = sanitize_widget_key(item)
+            col_pick, col_del = st.columns([5, 1])
+            if col_pick.button(item, key=f"pick_{slug}", width="stretch"):
+                st.session_state["pending_prompt"] = f"Summarize contract {item}"
+            if col_del.button("✕", key=f"del_{slug}", help=f"Remove {item}"):
+                st.session_state["chunks"] = remove_contract_chunks(
+                    st.session_state.get("chunks", []), item
                 )
-        clause_types = list_clause_types(sqlite_path, selected_contract)
-        selected_type = st.selectbox("Clause type", ["All", *clause_types])
-        clauses = list_clauses(
-            sqlite_path,
-            selected_contract,
-            clause_type=None if selected_type == "All" else selected_type,
+                st.rerun()
+        if st.button("Clear all contracts", type="secondary", width="stretch"):
+            st.session_state["chunks"] = []
+            st.rerun()
+    else:
+        st.caption("No uploaded contracts in this session.")
+
+    st.markdown("<div style='height:2rem'></div>", unsafe_allow_html=True)
+    with st.expander("⚙️ Config", expanded=False):
+        sqlite_path = st.text_input(
+            "SQLite DB path",
+            value=str(demo_sqlite_path(ROOT)),
         )
-        st.dataframe(clauses, use_container_width=True)
-        csv_text = rows_to_csv(clauses)
-        if csv_text:
-            st.download_button(
-                "Export clauses CSV",
-                data=csv_text,
-                file_name=f"{selected_contract}_clauses.csv",
-                mime="text/csv",
-            )
+        bm25_path = st.text_input(
+            "BM25 index path",
+            value=str(demo_bm25_path(ROOT)),
+        )
+
+
+col_title, col_clear = st.columns([6, 1])
+col_title.markdown("### Contract Chat")
+if col_clear.button("Clear chat", type="secondary"):
+    st.session_state["messages"] = []
+    st.session_state["pending_prompt"] = None
+    st.rerun()
+
+if not st.session_state["messages"]:
+    st.markdown(
+        """
+        <div style="text-align:center;padding:4rem 1rem 2rem 1rem;color:#495057">
+            <h3 style="margin-bottom:0.35rem">Ask a question across your contracts</h3>
+            <p style="margin-top:0">Answers include citations from retrieved clauses.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    col_a, col_b, col_c = st.columns(3)
+    examples = [
+        "What is the agreement date?",
+        "Which contracts expire soon?",
+        "What are the payment terms?",
+    ]
+    for column, example in zip([col_a, col_b, col_c], examples):
+        with column:
+            if st.button(example, width="stretch"):
+                st.session_state["pending_prompt"] = example
+
+for index, message in enumerate(st.session_state["messages"]):
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+        if message["role"] == "user":
+            pass
+        if message["role"] == "assistant":
+            structured_rows = message.get("structured_rows") or []
+            if structured_rows:
+                st.dataframe(structured_rows, width="stretch")
+                csv_text = rows_to_csv(structured_rows)
+                if csv_text:
+                    st.download_button(
+                        "Export structured results CSV",
+                        data=csv_text,
+                        file_name="structured_search_results.csv",
+                        mime="text/csv",
+                        key=f"structured_csv_{index}",
+                    )
+            citations = message.get("citations") or []
+            if citations:
+                st.markdown(
+                    " ".join(citation_badge(hit.chunk) for hit in citations),
+                    unsafe_allow_html=True,
+                )
+                for hit_index, hit in enumerate(citations):
+                    with st.expander(hit.chunk.citation):
+                        st.write(hit.chunk.text)
+                hit_rows = rows_for_hits(citations)
+                csv_text = rows_to_csv(hit_rows)
+                if csv_text:
+                    st.download_button(
+                        "Export search results CSV",
+                        data=csv_text,
+                        file_name="search_results.csv",
+                        mime="text/csv",
+                        key=f"search_csv_{index}",
+                    )
+
+prompt = st.session_state.pop("pending_prompt", None) or st.chat_input("Ask about your contracts...")
+if prompt:
+    intent_preview = run_contract_query(prompt, [], db_path=None, bm25_path=None).intent
+    st.session_state["messages"].append(
+        {
+            "role": "user",
+            "content": prompt,
+            "citations": [],
+            "intent": intent_preview,
+        }
+    )
+    append_assistant_message(prompt, sqlite_path, bm25_path)
+    st.rerun()

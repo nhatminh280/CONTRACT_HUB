@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import csv
 import hashlib
 import importlib.util
@@ -28,15 +29,41 @@ PDF_CONTRACT_ID = "contract_005"
 SCAN_CONTRACT_ID = "contract_005"
 QUERY_IDS = ["q003", "q004", "q007"]
 
+from generation.answer import answer_with_citations
 from generation.prompts import format_context
 from indexing.bm25_store import BM25Store
 from indexing.sql_store import ContractRecord, SQLStore
 from ingestion.chunker import Chunk, chunk_blocks
+from ingestion.extractor import contract_record_from_llm_json, extract_structured_json, format_chunks_for_llm_extraction
 from retrieval.hybrid_search import ScoredChunk, fuse
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run Slice 1 smoke test.")
+    parser.add_argument("--use-llm-extractor", action="store_true")
+    parser.add_argument("--use-llm-answer", action="store_true")
+    return parser.parse_args(argv)
 
 
 def has_module(name: str) -> bool:
     return importlib.util.find_spec(name) is not None
+
+
+def validate_llm_mode(use_llm_extractor: bool, use_llm_answer: bool) -> None:
+    if not (use_llm_extractor or use_llm_answer):
+        return
+    from config.llm import llm_api_key, llm_provider
+
+    provider = llm_provider()
+    if not llm_api_key(provider=provider):
+        key_name = {
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+        }.get(provider, "GEMINI_API_KEY")
+        raise SystemExit(f"{key_name} is required when LLM flags are enabled.")
+    required_module = "anthropic" if provider == "anthropic" else "openai"
+    if not has_module(required_module):
+        raise SystemExit(f"The {required_module} package is required when LLM flags are enabled.")
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -139,7 +166,17 @@ def write_page_text(pdf: list[dict[str, Any]], scanned: list[dict[str, Any]]) ->
                 )
 
 
-def extract_structured_fields(contract_id: str, manifest: dict[str, dict[str, Any]], chunks: list[Chunk]) -> ContractRecord:
+def extract_structured_fields(
+    contract_id: str,
+    manifest: dict[str, dict[str, Any]],
+    chunks: list[Chunk],
+    use_llm: bool = False,
+) -> ContractRecord:
+    if use_llm:
+        text = format_chunks_for_llm_extraction(chunks)
+        payload = extract_structured_json(text)
+        return contract_record_from_llm_json(contract_id, payload, chunks)
+
     first_line = next((line.strip() for line in chunks[0].text.splitlines() if line.strip()), contract_id)
     clauses = [
         {
@@ -257,7 +294,20 @@ def retrieval_query(test_case: dict[str, Any]) -> str:
     return match.group(1) if match else test_case["query"]
 
 
-def run_queries(chunks: list[Chunk], collection: Any | None) -> list[dict[str, Any]]:
+def answer_for_query(
+    query: str,
+    hits: list[ScoredChunk],
+    expected_terms: list[str],
+    use_llm_answer: bool = False,
+) -> str:
+    if use_llm_answer:
+        return answer_with_citations(query, hits)
+    if not hits:
+        return "Không có trong tài liệu."
+    return f"{snippet_for_query(hits[0], expected_terms)} {hits[0].chunk.citation}"
+
+
+def run_queries(chunks: list[Chunk], collection: Any | None, use_llm_answer: bool = False) -> list[dict[str, Any]]:
     with (ROOT / "data" / "ground_truth" / "test_cases.json").open(encoding="utf-8") as file:
         cases_by_id = {case["query_id"]: case for case in json.load(file)}
     test_cases = [cases_by_id[query_id] for query_id in QUERY_IDS]
@@ -282,9 +332,12 @@ def run_queries(chunks: list[Chunk], collection: Any | None) -> list[dict[str, A
             and any(term.lower() in top_hit.chunk.text.lower() for term in case["expected_contains"])
         )
         passed = bool(contract_matches and page_matches and contains_expected_term)
-        answer = "Không có trong tài liệu."
-        if top_hit is not None:
-            answer = f"{snippet_for_query(top_hit, case['expected_contains'])} {top_hit.chunk.citation}"
+        answer = answer_for_query(
+            case["query"],
+            fused,
+            case["expected_contains"],
+            use_llm_answer=use_llm_answer,
+        )
         results.append(
             {
                 "query_id": case["query_id"],
@@ -329,13 +382,19 @@ def write_chunks(chunks: list[Chunk]) -> None:
     )
 
 
-def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list[dict[str, Any]]) -> None:
+def write_markdown(
+    statuses: list[str],
+    chunks: list[Chunk],
+    query_results: list[dict[str, Any]],
+    use_llm_extractor: bool = False,
+    use_llm_answer: bool = False,
+) -> None:
     passed = sum(1 for result in query_results if result["passed"])
     failed = len(query_results) - passed
     real_ocr = any("ran PaddleOCR-VL" in status for status in statuses)
     remaining_gaps = [
-        "- Structured extraction is deterministic smoke extraction, not Gemini JSON extraction.",
-        "- Citations are clause/page citations from deterministic chunks; Gemini answer synthesis is still pending.",
+        "- Structured extraction is deterministic unless `--use-llm-extractor` is enabled.",
+        "- Answer synthesis is extractive unless `--use-llm-answer` is enabled.",
     ]
     if not real_ocr:
         remaining_gaps.insert(
@@ -360,7 +419,8 @@ def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list
         f"- ChromaDB available: `{has_module('chromadb')}`",
         f"- rank_bm25 available: `{has_module('rank_bm25')}`",
         f"- PaddleOCR available: `{has_module('paddleocr')}`",
-        "- Gemini API call: `not used`; answers are extractive snippets from retrieved chunks for smoke-test determinism.",
+        f"- LLM extractor: `{'used' if use_llm_extractor else 'not used'}`.",
+        f"- LLM answer synthesis: `{'used' if use_llm_answer else 'not used'}`.",
         "",
         "## Summary",
         f"- Query checks passed: `{passed}/{len(query_results)}`",
@@ -411,7 +471,9 @@ def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list
     RESULTS_PATH.write_text("\n".join(lines), encoding="utf-8")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+    validate_llm_mode(args.use_llm_extractor, args.use_llm_answer)
     OUTPUT_DIR.mkdir(exist_ok=True)
     SMOKE_INDEX_DIR.mkdir(parents=True, exist_ok=True)
     statuses: list[str] = []
@@ -424,12 +486,18 @@ def main() -> None:
     chunks = chunk_blocks(pdf, contract_id=PDF_CONTRACT_ID)
     write_chunks(chunks)
 
-    structured = extract_structured_fields(PDF_CONTRACT_ID, manifest, chunks)
+    structured = extract_structured_fields(PDF_CONTRACT_ID, manifest, chunks, use_llm=args.use_llm_extractor)
     persist_structured(structured)
 
     collection = build_chroma(chunks, statuses)
-    query_results = run_queries(chunks, collection)
-    write_markdown(statuses, chunks, query_results)
+    query_results = run_queries(chunks, collection, use_llm_answer=args.use_llm_answer)
+    write_markdown(
+        statuses,
+        chunks,
+        query_results,
+        use_llm_extractor=args.use_llm_extractor,
+        use_llm_answer=args.use_llm_answer,
+    )
     print(f"Wrote {RESULTS_PATH.relative_to(ROOT)}")
     if not all(result["passed"] for result in query_results):
         raise SystemExit(1)

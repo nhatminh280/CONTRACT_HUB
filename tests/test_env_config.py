@@ -53,6 +53,103 @@ class EnvConfigTests(unittest.TestCase):
 
         self.assertFalse(load_env_file(Path("/tmp/definitely-missing-contract-hub.env")))
 
+    def test_llm_config_prefers_openai_when_openai_key_is_available(self):
+        from config.llm import llm_api_key, llm_base_url, llm_model, llm_ocr_model, llm_provider
+
+        old_values = {
+            key: os.environ.get(key)
+            for key in [
+                "LLM_PROVIDER",
+                "OPENAI_API_KEY",
+                "OPENAI_MODEL",
+                "OPENAI_OCR_MODEL",
+                "OPENAI_BASE_URL",
+                "GEMINI_API_KEY",
+            ]
+        }
+        try:
+            os.environ["LLM_PROVIDER"] = ""
+            os.environ["OPENAI_API_KEY"] = "openai-key"
+            os.environ["OPENAI_MODEL"] = "gpt-test"
+            os.environ["OPENAI_OCR_MODEL"] = "gpt-ocr-test"
+            os.environ.pop("OPENAI_BASE_URL", None)
+            os.environ["GEMINI_API_KEY"] = "gemini-key"
+
+            self.assertEqual(llm_provider(), "openai")
+            self.assertEqual(llm_api_key(), "openai-key")
+            self.assertIsNone(llm_base_url())
+            self.assertEqual(llm_model(), "gpt-test")
+            self.assertEqual(llm_ocr_model(), "gpt-ocr-test")
+        finally:
+            for key, value in old_values.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
+    def test_llm_config_can_force_gemini_provider(self):
+        from config.llm import llm_api_key, llm_base_url, llm_model, llm_provider
+
+        old_values = {
+            key: os.environ.get(key)
+            for key in [
+                "LLM_PROVIDER",
+                "OPENAI_API_KEY",
+                "GEMINI_API_KEY",
+                "GEMINI_MODEL",
+                "GEMINI_BASE_URL",
+            ]
+        }
+        try:
+            os.environ["LLM_PROVIDER"] = "gemini"
+            os.environ["OPENAI_API_KEY"] = "openai-key"
+            os.environ["GEMINI_API_KEY"] = "gemini-key"
+            os.environ["GEMINI_MODEL"] = "gemini-test"
+            os.environ["GEMINI_BASE_URL"] = "https://gemini.example/v1/"
+
+            self.assertEqual(llm_provider(), "gemini")
+            self.assertEqual(llm_api_key(), "gemini-key")
+            self.assertEqual(llm_base_url(), "https://gemini.example/v1/")
+            self.assertEqual(llm_model(), "gemini-test")
+        finally:
+            for key, value in old_values.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
+    def test_llm_config_can_force_anthropic_provider(self):
+        from config.llm import llm_api_key, llm_base_url, llm_model, llm_ocr_model, llm_provider
+
+        old_values = {
+            key: os.environ.get(key)
+            for key in [
+                "LLM_PROVIDER",
+                "ANTHROPIC_API_KEY",
+                "ANTHROPIC_MODEL",
+                "ANTHROPIC_OCR_MODEL",
+                "OPENAI_API_KEY",
+            ]
+        }
+        try:
+            os.environ["LLM_PROVIDER"] = "anthropic"
+            os.environ["ANTHROPIC_API_KEY"] = "anthropic-key"
+            os.environ["ANTHROPIC_MODEL"] = "claude-test"
+            os.environ["ANTHROPIC_OCR_MODEL"] = "claude-ocr-test"
+            os.environ["OPENAI_API_KEY"] = "openai-key"
+
+            self.assertEqual(llm_provider(), "anthropic")
+            self.assertEqual(llm_api_key(), "anthropic-key")
+            self.assertIsNone(llm_base_url())
+            self.assertEqual(llm_model(), "claude-test")
+            self.assertEqual(llm_ocr_model(), "claude-ocr-test")
+        finally:
+            for key, value in old_values.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
 
 if __name__ == "__main__":
     unittest.main()

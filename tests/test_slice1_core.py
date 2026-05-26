@@ -6,6 +6,9 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from ingestion.chunker import Chunk
+from indexing.sql_store import ContractRecord
+
 
 class FakePage:
     def __init__(self, text, tables=None):
@@ -28,6 +31,61 @@ class FakeTable:
 
 
 class SliceOneCoreTests(unittest.TestCase):
+    def test_slice1_parse_args_exposes_llm_flags(self):
+        from scripts.slice1_smoke_test import parse_args
+
+        args = parse_args(["--use-llm-extractor", "--use-llm-answer"])
+
+        self.assertTrue(args.use_llm_extractor)
+        self.assertTrue(args.use_llm_answer)
+
+    def test_slice1_extract_structured_fields_uses_llm_when_requested(self):
+        from scripts.slice1_smoke_test import extract_structured_fields
+
+        chunk = Chunk(
+            id="c1",
+            text="EXHIBIT B",
+            contract_id="contract_005",
+            clause_number="Document",
+            page_start=1,
+            page_end=1,
+        )
+        manifest = {"contract_005": {"pdf_path": "unused"}}
+
+        with (
+            patch("scripts.slice1_smoke_test.extract_structured_json", return_value={"title": "LLM Exhibit"}) as extract_json,
+            patch(
+                "scripts.slice1_smoke_test.contract_record_from_llm_json",
+                return_value=ContractRecord(contract_id="contract_005", title="LLM Exhibit"),
+            ) as normalize,
+        ):
+            record = extract_structured_fields("contract_005", manifest, [chunk], use_llm=True)
+
+        self.assertEqual(record.title, "LLM Exhibit")
+        extract_json.assert_called_once()
+        self.assertIn("EXHIBIT B", extract_json.call_args.args[0])
+        self.assertIn("contract_005", extract_json.call_args.args[0])
+        normalize.assert_called_once_with("contract_005", {"title": "LLM Exhibit"}, [chunk])
+
+    def test_slice1_extract_structured_fields_default_is_deterministic(self):
+        from scripts.slice1_smoke_test import extract_structured_fields
+
+        chunk = Chunk(
+            id="c1",
+            text="EXHIBIT B",
+            contract_id="contract_005",
+            clause_number="Document",
+            page_start=1,
+            page_end=1,
+        )
+        manifest = {"contract_005": {"pdf_path": "unused"}}
+
+        with patch("scripts.slice1_smoke_test.extract_structured_json") as extract_json:
+            record = extract_structured_fields("contract_005", manifest, [chunk])
+
+        self.assertEqual(record.title, "EXHIBIT B")
+        extract_json.assert_not_called()
+
     def test_routes_pdf_by_average_text_per_page(self):
         from ingestion.router import route
 
@@ -168,23 +226,27 @@ class SliceOneCoreTests(unittest.TestCase):
         self.assertIn("Bên A thanh toán", context)
 
         messages = build_answer_messages("Khi nào thanh toán?", [hit])
-        self.assertIn("Không có trong tài liệu", messages[0]["content"])
+        self.assertIn("Not found in the provided context.", messages[0]["content"])
+        self.assertIn("Closest match.", messages[0]["content"])
+        self.assertIn("Answer:", messages[0]["content"])
+        self.assertIn("Evidence:", messages[0]["content"])
+        self.assertIn("Sources:", messages[0]["content"])
+        self.assertIn("Confidence:", messages[0]["content"])
+        self.assertIn("Retrieved Context:", messages[0]["content"])
+        self.assertIn("Do not paste full chunks", messages[0]["content"])
+        self.assertIn("Do not expose internal system/debug messages", messages[0]["content"])
         self.assertIn("Khi nào thanh toán?", messages[1]["content"])
+        self.assertIn("Detected intent:", messages[1]["content"])
+        self.assertIn("Retrieved contract context:", messages[1]["content"])
 
-    def test_llm_helpers_default_to_gemini_model(self):
+    def test_llm_helpers_allow_env_model_by_default(self):
         import inspect
 
         from generation.answer import answer_with_citations
         from ingestion.extractor import extract_structured_json
 
-        self.assertEqual(
-            inspect.signature(answer_with_citations).parameters["model"].default,
-            "gemini-3.5-flash",
-        )
-        self.assertEqual(
-            inspect.signature(extract_structured_json).parameters["model"].default,
-            "gemini-3.5-flash",
-        )
+        self.assertIsNone(inspect.signature(answer_with_citations).parameters["model"].default)
+        self.assertIsNone(inspect.signature(extract_structured_json).parameters["model"].default)
 
     def test_sql_store_persists_contract_parties_and_clauses(self):
         from indexing.sql_store import ContractRecord, SQLStore
@@ -323,7 +385,6 @@ class SliceOneCoreTests(unittest.TestCase):
                 vl_rec_model_dir=None,
                 layout_detection_model_name=None,
                 layout_detection_model_dir=None,
-                device=None,
                 **kwargs,
             ):
                 captured["pipeline_version"] = pipeline_version
@@ -332,32 +393,187 @@ class SliceOneCoreTests(unittest.TestCase):
                     "vl_rec_model_dir": vl_rec_model_dir,
                     "layout_detection_model_name": layout_detection_model_name,
                     "layout_detection_model_dir": layout_detection_model_dir,
-                    "device": device,
                     **kwargs,
                 }
 
             def predict(self, _path):
                 return []
 
+        fake_paddle = SimpleNamespace(
+            set_device=lambda device: captured.setdefault("paddle_device", device),
+            is_compiled_with_cuda=lambda: True,
+        )
         fake_module = SimpleNamespace(PaddleOCRVL=FakePaddleOCRVL)
-        with patch.dict(sys.modules, {"paddleocr": fake_module}):
-            runner = PaddleOCRVLRunner(
-                vl_rec_model_name="PaddleOCR-VL-0.9B",
-                vl_rec_model_dir="/models/PaddleOCR-VL",
-                layout_detection_model_name="PP-DocLayoutV2",
-                layout_detection_model_dir="/models/PP-DocLayoutV2",
-                device="gpu:0",
-                vl_rec_model_kwargs={"attn_implementation": "flash_attention_2"},
-            )
-            runner.parse("contract.pdf")
+        with patch.dict(sys.modules, {"paddleocr": fake_module, "paddle": fake_paddle}):
+            with patch.dict(os.environ, {"OCR_DEVICE": "cpu"}):
+                runner = PaddleOCRVLRunner(
+                    vl_rec_model_name="PaddleOCR-VL-0.9B",
+                    vl_rec_model_dir="/models/PaddleOCR-VL",
+                    layout_detection_model_name="PP-DocLayoutV2",
+                    layout_detection_model_dir="/models/PP-DocLayoutV2",
+                    device="gpu:0",
+                    vl_rec_model_kwargs={"attn_implementation": "flash_attention_2"},
+                )
+                runner.parse("contract.pdf")
 
         self.assertEqual(captured["pipeline_version"], "v1.5")
         self.assertEqual(captured["kwargs"]["vl_rec_model_name"], "PaddleOCR-VL-0.9B")
         self.assertEqual(captured["kwargs"]["vl_rec_model_dir"], "/models/PaddleOCR-VL")
         self.assertEqual(captured["kwargs"]["layout_detection_model_name"], "PP-DocLayoutV2")
         self.assertEqual(captured["kwargs"]["layout_detection_model_dir"], "/models/PP-DocLayoutV2")
-        self.assertEqual(captured["kwargs"]["device"], "gpu:0")
+        self.assertNotIn("device", captured["kwargs"])
         self.assertEqual(captured["kwargs"]["vl_rec_model_kwargs"], {"attn_implementation": "flash_attention_2"})
+        self.assertEqual(captured["paddle_device"], "cpu")
+
+    def test_ocr_runner_returns_fallback_on_init_failure(self):
+        from ingestion.ocr import PaddleOCRVLRunner
+
+        class FailingPaddleOCRVL:
+            def __init__(self, **_kwargs):
+                raise RuntimeError("simulated PaddleOCR-VL init failure")
+
+        fake_paddle = SimpleNamespace(
+            set_device=lambda _device: None,
+            is_compiled_with_cuda=lambda: False,
+        )
+        fake_module = SimpleNamespace(PaddleOCRVL=FailingPaddleOCRVL)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            open(os.path.join(tmpdir, "page_001.png"), "wb").close()
+            open(os.path.join(tmpdir, "page_002.png"), "wb").close()
+
+            with patch.dict(sys.modules, {"paddleocr": fake_module, "paddle": fake_paddle}):
+                with patch.dict(os.environ, {"OCR_DEVICE": "cpu", "OCR_FALLBACK_ENABLED": "false"}):
+                    runner = PaddleOCRVLRunner()
+                    with self.assertWarns(RuntimeWarning):
+                        blocks = runner.parse_image_folder(tmpdir)
+                    parse_blocks = runner.parse("contract.pdf")
+
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual([block["type"] for block in blocks], ["ocr_error", "ocr_error"])
+        self.assertEqual([block["page"] for block in blocks], [1, 2])
+        self.assertIn("simulated PaddleOCR-VL init failure", blocks[0]["text"])
+
+        self.assertEqual(len(parse_blocks), 1)
+        self.assertEqual(parse_blocks[0]["type"], "ocr_error")
+        self.assertEqual(parse_blocks[0]["page"], 1)
+
+    def test_ocr_runner_falls_back_to_gemini_on_init_failure(self):
+        from ingestion.ocr import PaddleOCRVLRunner
+
+        class FailingPaddleOCRVL:
+            def __init__(self, **_kwargs):
+                raise RuntimeError("simulated PaddleOCR-VL init failure")
+
+        fake_paddle = SimpleNamespace(
+            set_device=lambda _device: None,
+            is_compiled_with_cuda=lambda: False,
+        )
+        fake_paddleocr = SimpleNamespace(PaddleOCRVL=FailingPaddleOCRVL)
+
+        captured_calls = []
+
+        class FakeChatCompletions:
+            def create(self, **kwargs):
+                captured_calls.append(kwargs)
+                return SimpleNamespace(
+                    choices=[SimpleNamespace(message=SimpleNamespace(content="Extracted text from Gemini"))]
+                )
+
+        class FakeOpenAIClient:
+            def __init__(self, **_kwargs):
+                self.chat = SimpleNamespace(completions=FakeChatCompletions())
+
+        fake_openai_module = SimpleNamespace(OpenAI=FakeOpenAIClient)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            page1 = os.path.join(tmpdir, "page_001.png")
+            page2 = os.path.join(tmpdir, "page_002.png")
+            with open(page1, "wb") as fp:
+                fp.write(b"\x89PNG\r\n\x1a\n" + b"\x00" * 16)
+            with open(page2, "wb") as fp:
+                fp.write(b"\x89PNG\r\n\x1a\n" + b"\x00" * 16)
+
+            with patch.dict(
+                sys.modules,
+                {"paddleocr": fake_paddleocr, "paddle": fake_paddle, "openai": fake_openai_module},
+            ):
+                with patch.dict(
+                    os.environ,
+                    {
+                        "OCR_DEVICE": "cpu",
+                        "OCR_FALLBACK_ENABLED": "true",
+                        "OCR_API_FALLBACK_PROVIDER": "gemini",
+                        "GEMINI_API_KEY": "test-key",
+                        "GEMINI_OCR_MODEL": "gemini-2.5-flash-lite",
+                    },
+                ):
+                    runner = PaddleOCRVLRunner()
+                    blocks = runner.parse_image_folder(tmpdir)
+
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual([block["type"] for block in blocks], ["ocr_api", "ocr_api"])
+        self.assertEqual([block["source"] for block in blocks], ["gemini", "gemini"])
+        self.assertEqual([block["page"] for block in blocks], [1, 2])
+        self.assertEqual(blocks[0]["text"], "Extracted text from Gemini")
+
+        self.assertEqual(len(captured_calls), 2)
+        self.assertEqual(captured_calls[0]["model"], "gemini-2.5-flash-lite")
+        message_content = captured_calls[0]["messages"][0]["content"]
+        self.assertEqual(message_content[0]["type"], "text")
+        self.assertIn("OCR engine", message_content[0]["text"])
+        self.assertEqual(message_content[1]["type"], "image_url")
+        self.assertTrue(message_content[1]["image_url"]["url"].startswith("data:image/png;base64,"))
+
+    def test_ocr_runner_gemini_fallback_failure_returns_ocr_error(self):
+        from ingestion.ocr import PaddleOCRVLRunner
+
+        class FailingPaddleOCRVL:
+            def __init__(self, **_kwargs):
+                raise RuntimeError("simulated PaddleOCR-VL init failure")
+
+        fake_paddle = SimpleNamespace(
+            set_device=lambda _device: None,
+            is_compiled_with_cuda=lambda: False,
+        )
+        fake_paddleocr = SimpleNamespace(PaddleOCRVL=FailingPaddleOCRVL)
+
+        class FailingChatCompletions:
+            def create(self, **_kwargs):
+                raise RuntimeError("simulated Gemini API failure")
+
+        class FailingOpenAIClient:
+            def __init__(self, **_kwargs):
+                self.chat = SimpleNamespace(completions=FailingChatCompletions())
+
+        fake_openai_module = SimpleNamespace(OpenAI=FailingOpenAIClient)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            page1 = os.path.join(tmpdir, "page_001.png")
+            with open(page1, "wb") as fp:
+                fp.write(b"\x89PNG\r\n\x1a\n" + b"\x00" * 16)
+
+            with patch.dict(
+                sys.modules,
+                {"paddleocr": fake_paddleocr, "paddle": fake_paddle, "openai": fake_openai_module},
+            ):
+                with patch.dict(
+                    os.environ,
+                    {
+                        "OCR_DEVICE": "cpu",
+                        "OCR_FALLBACK_ENABLED": "true",
+                        "OCR_API_FALLBACK_PROVIDER": "gemini",
+                        "GEMINI_API_KEY": "test-key",
+                    },
+                ):
+                    runner = PaddleOCRVLRunner()
+                    blocks = runner.parse_image_folder(tmpdir)
+
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0]["type"], "ocr_error")
+        self.assertEqual(blocks[0]["source"], "fallback")
+        self.assertEqual(blocks[0]["page"], 1)
+        self.assertIn("simulated Gemini API failure", blocks[0]["text"])
 
 
 if __name__ == "__main__":

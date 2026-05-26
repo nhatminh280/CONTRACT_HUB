@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
 import importlib.util
 import json
@@ -27,18 +28,44 @@ CONTRACT_IDS = ["contract_004", "contract_005"]
 QUERY_IDS = ["q004", "q007", "q013", "q015", "q016"]
 
 from generation.prompts import format_context
+from generation.answer import answer_with_citations
 from indexing.bm25_store import BM25Store
 from indexing.sql_store import ContractRecord, SQLStore
 from ingestion.chunker import Chunk
 from ingestion.chunker import chunk_blocks
+from ingestion.extractor import contract_record_from_llm_json, extract_structured_json, format_chunks_for_llm_extraction
 from ingestion.extractor import extract_deterministic_record
 from retrieval.hybrid_search import ScoredChunk, fuse
 from retrieval.router import classify_intent
 from retrieval.text_to_sql import UnsupportedStructuredQuery, build_structured_query, execute_structured_query
 
 
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run Slice 2 multi-contract smoke test.")
+    parser.add_argument("--use-llm-extractor", action="store_true")
+    parser.add_argument("--use-llm-answer", action="store_true")
+    return parser.parse_args(argv)
+
+
 def has_module(name: str) -> bool:
     return importlib.util.find_spec(name) is not None
+
+
+def validate_llm_mode(use_llm_extractor: bool, use_llm_answer: bool) -> None:
+    if not (use_llm_extractor or use_llm_answer):
+        return
+    from config.llm import llm_api_key, llm_provider
+
+    provider = llm_provider()
+    if not llm_api_key(provider=provider):
+        key_name = {
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+        }.get(provider, "GEMINI_API_KEY")
+        raise SystemExit(f"{key_name} is required when LLM flags are enabled.")
+    required_module = "anthropic" if provider == "anthropic" else "openai"
+    if not has_module(required_module):
+        raise SystemExit(f"The {required_module} package is required when LLM flags are enabled.")
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -80,7 +107,11 @@ def load_blocks(contract_id: str, manifest: dict[str, dict[str, Any]], statuses:
     return [{"text": row["text"], "page": row["page_number"], "type": "text_reference"} for row in pages]
 
 
-def extract_structured_fields(contract_id: str, chunks: list[Chunk]) -> ContractRecord:
+def extract_structured_fields(contract_id: str, chunks: list[Chunk], use_llm: bool = False) -> ContractRecord:
+    if use_llm:
+        text = format_chunks_for_llm_extraction(chunks)
+        payload = extract_structured_json(text)
+        return contract_record_from_llm_json(contract_id, payload, chunks)
     return extract_deterministic_record(contract_id, chunks)
 
 
@@ -241,12 +272,21 @@ def evaluate_query_results(
     return results
 
 
-def run_queries(chunks: list[Chunk], collection: Any | None) -> list[dict[str, Any]]:
+def answer_for_query(query: str, hits: list[ScoredChunk], use_llm_answer: bool = False) -> str:
+    if use_llm_answer:
+        return answer_with_citations(query, hits)
+    if not hits:
+        return "Không có trong tài liệu."
+    return f"{hits[0].chunk.text[:420]} {hits[0].chunk.citation}"
+
+
+def run_queries(chunks: list[Chunk], collection: Any | None, use_llm_answer: bool = False) -> list[dict[str, Any]]:
     test_cases = load_test_cases()
     bm25 = BM25Store(chunks)
     bm25.save(str(BM25_PATH))
     chunks_by_id = {chunk.id: chunk for chunk in chunks}
     top_hits: dict[str, list[Chunk]] = {}
+    fused_hits: dict[str, list[ScoredChunk]] = {}
     contexts: dict[str, str] = {}
 
     for case in test_cases:
@@ -254,12 +294,19 @@ def run_queries(chunks: list[Chunk], collection: Any | None) -> list[dict[str, A
         vector_hits = search_chroma(collection, focused_query, chunks_by_id)
         bm25_hits = bm25.search(focused_query, top_k=10)
         fused = fuse(vector_hits, bm25_hits, top_k=3)
+        fused_hits[case["query_id"]] = fused
         top_hits[case["query_id"]] = [hit.chunk for hit in fused]
         contexts[case["query_id"]] = format_context(fused)
 
     results = evaluate_query_results(test_cases, top_hits)
     for result in results:
         result["context"] = contexts[result["query_id"]]
+        if use_llm_answer:
+            result["answer"] = answer_for_query(
+                result["query"],
+                fused_hits[result["query_id"]],
+                use_llm_answer=True,
+            )
         if result["intent"] == "structured":
             try:
                 structured = build_structured_query(result["retrieval_query"])
@@ -301,7 +348,13 @@ def write_chunks(chunks: list[Chunk]) -> None:
     )
 
 
-def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list[dict[str, Any]]) -> None:
+def write_markdown(
+    statuses: list[str],
+    chunks: list[Chunk],
+    query_results: list[dict[str, Any]],
+    use_llm_extractor: bool = False,
+    use_llm_answer: bool = False,
+) -> None:
     passed = sum(1 for result in query_results if result["passed"])
     failed = len(query_results) - passed
     by_contract = {contract_id: sum(1 for chunk in chunks if chunk.contract_id == contract_id) for contract_id in CONTRACT_IDS}
@@ -323,7 +376,8 @@ def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list
         f"- ChromaDB available: `{has_module('chromadb')}`",
         f"- rank_bm25 available: `{has_module('rank_bm25')}`",
         "- OCR: `not used`; Slice 2 foundation uses text PDFs/reference text for faster multi-contract indexing.",
-        "- Gemini API call: `not used`; answers are extractive snippets from retrieved chunks for smoke-test determinism.",
+        f"- LLM extractor: `{'used' if use_llm_extractor else 'not used'}`.",
+        f"- LLM answer synthesis: `{'used' if use_llm_answer else 'not used'}`.",
         "- Intent router: deterministic local classifier from `retrieval/router.py`; retrieval still uses hybrid search while SQL is shown as diagnostics.",
         "- Text-to-SQL: deterministic local translator from `retrieval/text_to_sql.py`; report-only until metadata extraction is richer.",
         "",
@@ -373,7 +427,7 @@ def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list
         [
             "## Remaining Gaps",
             "- Query router and text-to-SQL are deterministic and report-only; routing behavior can now be wired into UI/search commands.",
-            "- Structured extraction remains deterministic, so date/value/party SQL results are sparse until richer metadata is extracted.",
+            "- Structured extraction remains deterministic unless `--use-llm-extractor` is enabled.",
             "",
         ]
     )
@@ -387,7 +441,9 @@ def reset_outputs() -> None:
     SMOKE_INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+    validate_llm_mode(args.use_llm_extractor, args.use_llm_answer)
     reset_outputs()
     statuses: list[str] = []
     manifest = load_manifest()
@@ -399,13 +455,19 @@ def main() -> None:
         chunks = chunk_blocks(blocks, contract_id=contract_id)
         statuses.append(f"{contract_id}: chunked into {len(chunks)} clause-aware chunks.")
         all_chunks.extend(chunks)
-        records.append(extract_structured_fields(contract_id, chunks))
+        records.append(extract_structured_fields(contract_id, chunks, use_llm=args.use_llm_extractor))
 
     write_chunks(all_chunks)
     persist_structured(records)
     collection = build_chroma(all_chunks, statuses)
-    query_results = run_queries(all_chunks, collection)
-    write_markdown(statuses, all_chunks, query_results)
+    query_results = run_queries(all_chunks, collection, use_llm_answer=args.use_llm_answer)
+    write_markdown(
+        statuses,
+        all_chunks,
+        query_results,
+        use_llm_extractor=args.use_llm_extractor,
+        use_llm_answer=args.use_llm_answer,
+    )
     print(f"Wrote {RESULTS_PATH.relative_to(ROOT)}")
     if not all(result["passed"] for result in query_results):
         raise SystemExit(1)

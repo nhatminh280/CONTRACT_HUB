@@ -1,10 +1,106 @@
 import unittest
+from unittest.mock import patch
 
 from ingestion.chunker import Chunk
-from scripts.slice2_multi_contract_smoke_test import evaluate_query_results, retrieval_query
+from indexing.sql_store import ContractRecord
+from retrieval.hybrid_search import ScoredChunk
+from scripts.slice2_multi_contract_smoke_test import (
+    answer_for_query,
+    evaluate_query_results,
+    extract_structured_fields,
+    parse_args,
+    retrieval_query,
+)
 
 
 class SliceTwoMultiContractTests(unittest.TestCase):
+    def test_parse_args_exposes_llm_flags(self):
+        args = parse_args(["--use-llm-extractor", "--use-llm-answer"])
+
+        self.assertTrue(args.use_llm_extractor)
+        self.assertTrue(args.use_llm_answer)
+
+    def test_extract_structured_fields_uses_llm_when_requested(self):
+        chunk = Chunk(
+            id="c1",
+            text="MASTER SERVICES AGREEMENT",
+            contract_id="contract_004",
+            clause_number="Document",
+            page_start=1,
+            page_end=1,
+        )
+
+        with (
+            patch(
+                "scripts.slice2_multi_contract_smoke_test.extract_structured_json",
+                return_value={"title": "LLM Title"},
+            ) as extract_json,
+            patch(
+                "scripts.slice2_multi_contract_smoke_test.contract_record_from_llm_json",
+                return_value=ContractRecord(contract_id="contract_004", title="LLM Title"),
+            ) as normalize,
+        ):
+            record = extract_structured_fields("contract_004", [chunk], use_llm=True)
+
+        self.assertEqual(record.title, "LLM Title")
+        extract_json.assert_called_once()
+        self.assertIn("MASTER SERVICES AGREEMENT", extract_json.call_args.args[0])
+        self.assertIn("contract_004", extract_json.call_args.args[0])
+        normalize.assert_called_once_with("contract_004", {"title": "LLM Title"}, [chunk])
+
+    def test_extract_structured_fields_default_is_deterministic(self):
+        chunk = Chunk(
+            id="c1",
+            text="MASTER SERVICES AGREEMENT",
+            contract_id="contract_004",
+            clause_number="Document",
+            page_start=1,
+            page_end=1,
+        )
+
+        with patch("scripts.slice2_multi_contract_smoke_test.extract_structured_json") as extract_json:
+            record = extract_structured_fields("contract_004", [chunk])
+
+        self.assertEqual(record.title, "MASTER SERVICES AGREEMENT")
+        extract_json.assert_not_called()
+
+    def test_answer_for_query_uses_llm_when_requested(self):
+        chunk = Chunk(
+            id="c1",
+            text="Payment within 30 days.",
+            contract_id="contract_004",
+            clause_number="Section 4",
+            page_start=2,
+            page_end=2,
+        )
+        hits = [ScoredChunk(chunk=chunk, score=1.0)]
+
+        with patch(
+            "scripts.slice2_multi_contract_smoke_test.answer_with_citations",
+            return_value="LLM answer [Section 4, trang 2, contract_004]",
+        ) as answer:
+            result = answer_for_query("When is payment due?", hits, use_llm_answer=True)
+
+        self.assertEqual(result, "LLM answer [Section 4, trang 2, contract_004]")
+        answer.assert_called_once_with("When is payment due?", hits)
+
+    def test_answer_for_query_default_is_extracting_matched_hit(self):
+        chunk = Chunk(
+            id="c1",
+            text="Payment within 30 days.",
+            contract_id="contract_004",
+            clause_number="Section 4",
+            page_start=2,
+            page_end=2,
+        )
+
+        with patch("scripts.slice2_multi_contract_smoke_test.answer_with_citations") as answer:
+            result = answer_for_query("When is payment due?", [ScoredChunk(chunk=chunk, score=1.0)])
+
+        self.assertIn("Payment within 30 days.", result)
+        self.assertIn("[Section 4, trang 2, contract_004]", result)
+        answer.assert_not_called()
+
     def test_evaluate_query_results_requires_contract_page_and_terms(self):
         chunks = [
             Chunk(

@@ -1,6 +1,9 @@
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 from ingestion.chunker import Chunk
+from retrieval.hybrid_search import ScoredChunk
 
 
 class SliceThreeEvaluateTests(unittest.TestCase):
@@ -110,6 +113,63 @@ class SliceThreeEvaluateTests(unittest.TestCase):
 
         self.assertEqual(evaluations[0].top_citation, "[Document, trang 1, contract_a]")
         self.assertTrue(evaluations[0].precision_at_3_hit)
+
+    def test_evaluate_cases_uses_llm_answer_for_answer_contains_when_enabled(self):
+        import eval.evaluate as evaluate_module
+        from eval.evaluate import evaluate_cases
+
+        expected = {
+            "query_id": "q001",
+            "query": 'Highlight "Payment". Details: payment terms',
+            "expected_contract_id": "contract_a",
+            "expected_page": 2,
+            "expected_contains": ["net", "30"],
+        }
+        chunk = Chunk(
+            id="match",
+            text="Invoices are due net 30 days.",
+            contract_id="contract_a",
+            clause_number="Section 4",
+            page_start=2,
+            page_end=2,
+        )
+        hits = [ScoredChunk(chunk=chunk, score=1.0)]
+
+        with (
+            patch.object(evaluate_module, "retrieve_ranked_chunks", return_value=hits),
+            patch.object(evaluate_module, "answer_with_citations", return_value="The source says payment timing."),
+        ):
+            evaluations = evaluate_cases([expected], [chunk], use_llm_answer=True)
+
+        self.assertEqual(evaluations[0].answer, "The source says payment timing.")
+        self.assertTrue(evaluations[0].precision_at_3_hit)
+        self.assertTrue(evaluations[0].citation_correct)
+        self.assertFalse(evaluations[0].answer_contains_expected)
+
+    def test_parse_args_exposes_llm_answer_flag(self):
+        from eval.evaluate import parse_args
+
+        args = parse_args(["--use-llm-answer"])
+
+        self.assertTrue(args.use_llm_answer)
+
+    def test_display_path_handles_relative_output_path(self):
+        from eval.evaluate import display_path
+
+        self.assertEqual(display_path(Path("outputs/custom.md")), "outputs/custom.md")
+
+    def test_validate_llm_mode_requires_openai_package(self):
+        import eval.evaluate as evaluate_module
+
+        with (
+            patch("config.llm.llm_provider", return_value="openai"),
+            patch("config.llm.llm_api_key", return_value="key"),
+            patch.object(evaluate_module, "has_module", return_value=False),
+            self.assertRaises(SystemExit) as context,
+        ):
+            evaluate_module.validate_llm_mode(use_llm_answer=True)
+
+        self.assertIn("openai", str(context.exception))
 
     def test_focused_query_expands_cuad_clause_categories(self):
         from eval.evaluate import focused_query

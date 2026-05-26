@@ -1,17 +1,45 @@
+# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Virtualenv / secrets / IDE local state
 .venv/
 .env
 .streamlit/
-outputs/
+
+# Local OS / editor
+.DS_Store
+.vscode/
+
+# Large artefacts (zips, sqlite snapshots, etc.)
 *.zip
 *.sqlite
 
+# Heavy CUAD assets (download separately — see README)
+data/raw/CUAD_v1.zip
+data/raw/cuad_v1/
+
+# Default: do not commit raw, processed, or index dumps...
 data/raw/*
 data/processed/*
 data/index/*
 data/ground_truth/cuad_annotations/*
+
+# ...but keep the tiny CUAD sample needed for the demo & eval
+!data/raw/cuad_sample/
+!data/raw/cuad_sample/**
+
+# Keep .gitkeep placeholders so empty folders survive
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/index/.gitkeep
+
+# Outputs: ignore working artefacts, but keep eval & submission docs
+outputs/*
+!outputs/.gitkeep
+!outputs/slice3_eval_results.md
+!outputs/slice3_eval_results.json
+!outputs/slice1_smoke_test_results.md
+!outputs/slice2_multi_contract_smoke_test_results.md
+!outputs/submission_summary.md
