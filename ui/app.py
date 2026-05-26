@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from config.env import load_env_file
+from config.llm import gemini_api_key
 from generation.answer import answer_with_citations
 from ingestion.chunker import Chunk, chunk_blocks
 from ingestion.ocr import PaddleOCRVLRunner
@@ -83,7 +84,7 @@ with search_tab:
         else:
             with st.spinner("Generating cited answer"):
                 try:
-                    answer = answer_with_citations(query, result.hits, api_key=os.getenv("OPENAI_API_KEY"))
+                    answer = answer_with_citations(query, result.hits, api_key=gemini_api_key())
                 except Exception:
                     answer = "\n\n".join(f"{hit.chunk.citation}\n{hit.chunk.text}" for hit in result.hits)
             st.markdown(answer)

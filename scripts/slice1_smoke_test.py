@@ -334,8 +334,8 @@ def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list
     failed = len(query_results) - passed
     real_ocr = any("ran PaddleOCR-VL" in status for status in statuses)
     remaining_gaps = [
-        "- Structured extraction is deterministic smoke extraction, not OpenAI JSON extraction.",
-        "- Citations are clause/page citations from deterministic chunks; OpenAI answer synthesis is still pending.",
+        "- Structured extraction is deterministic smoke extraction, not Gemini JSON extraction.",
+        "- Citations are clause/page citations from deterministic chunks; Gemini answer synthesis is still pending.",
     ]
     if not real_ocr:
         remaining_gaps.insert(
@@ -360,7 +360,7 @@ def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list
         f"- ChromaDB available: `{has_module('chromadb')}`",
         f"- rank_bm25 available: `{has_module('rank_bm25')}`",
         f"- PaddleOCR available: `{has_module('paddleocr')}`",
-        "- OpenAI API call: `not used`; answers are extractive snippets from retrieved chunks for smoke-test determinism.",
+        "- Gemini API call: `not used`; answers are extractive snippets from retrieved chunks for smoke-test determinism.",
         "",
         "## Summary",
         f"- Query checks passed: `{passed}/{len(query_results)}`",

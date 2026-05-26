@@ -1,6 +1,6 @@
 # Digital Contract Hub — Vibe Coding Plan
 > OnPoint AI Innovation Engineer · Problem 2  
-> Stack: PaddleOCR-VL 1.5 · LlamaIndex · ChromaDB · SQLite · OpenAI API · Streamlit  
+> Stack: PaddleOCR-VL 1.5 · LlamaIndex · ChromaDB · SQLite · Gemini API · Streamlit  
 > Approach: Vertical slices — mỗi slice demo được độc lập
 
 ---
@@ -33,7 +33,7 @@
 │                              ↓                               │
 │                     RRF Fusion + Rerank                      │
 │                              ↓                               │
-│                    OpenAI → Answer + Citation                │
+│                    Gemini → Answer + Citation                │
 └──────────────────────────────────────────────────────────────┘
                               ↓
 ┌──────────────────────────────────────────────────────────────┐
@@ -49,7 +49,7 @@
 ```
 contract-hub/
 ├── README.md
-├── .env.example               # OPENAI_API_KEY
+├── .env.example               # GEMINI_API_KEY
 ├── requirements.txt
 │
 ├── ingestion/
@@ -67,12 +67,12 @@ contract-hub/
 ├── retrieval/
 │   ├── hybrid_search.py       # Vector + BM25 + RRF fusion
 │   ├── reranker.py            # cross-encoder reranking
-│   ├── text_to_sql.py         # structured query via OpenAI
+│   ├── text_to_sql.py         # structured query via Gemini
 │   └── router.py              # intent classifier
 │
 ├── generation/
 │   ├── prompts.py             # tất cả prompt templates
-│   └── answer.py              # OpenAI call + citation format
+│   └── answer.py              # Gemini call + citation format
 │
 ├── ui/
 │   └── app.py                 # Streamlit
@@ -103,7 +103,7 @@ pip install pymupdf paddleocr paddlepaddle-gpu chromadb \
 
 **.env**
 ```
-OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=...
 ```
 
 **Bước 2 — PDF Router** `ingestion/router.py`
@@ -149,7 +149,7 @@ Mỗi chunk metadata: {contract_id, clause_number, page_start, page_end, clause_
 
 **Bước 6 — LLM Structured Extractor** `ingestion/extractor.py`
 
-Dùng OpenAI model:
+Dùng Gemini model:
 ```json
 {
   "contract_id": "HĐ-2024-001",
@@ -271,7 +271,7 @@ INTENTS = {
     "structured":  "Filter theo ngày, số tiền, tên công ty cụ thể",
     "keyword":     "Tìm điều khoản/số hợp đồng cụ thể",
 }
-# OpenAI classify → route sang đúng retriever
+# Gemini classify → route sang đúng retriever
 ```
 
 **Text-to-SQL** `retrieval/text_to_sql.py`
@@ -354,14 +354,14 @@ Visualize trong Streamlit bằng `streamlit-agraph`.
 |---|---|---|
 | OCR scan | PaddleOCR-VL 1.5 + flash_attn2 | SOTA, free, tiếng Việt, 6GB OK |
 | PDF text | pymupdf | Nhanh, chính xác 100% |
-| LLM extract | OpenAI | Structured JSON extraction |
+| LLM extract | Gemini | Structured JSON extraction |
 | Embedding | text-embedding-3-small | $0.02/1M tokens |
 | Vector DB | ChromaDB local | Zero setup |
 | Keyword | rank_bm25 | Pure Python |
 | Structured | SQLite + SQLAlchemy | Không cần server |
 | Reranker | ms-marco-MiniLM-L-6-v2 | Free, local |
 | RAG | LlamaIndex | Native citation |
-| LLM answer | OpenAI | Citation-following |
+| LLM answer | Gemini | Citation-following |
 | UI | Streamlit | Nhanh nhất cho POC |
 | KG (optional) | NetworkX + PyVis | Nhẹ, không cần Neo4j |
 

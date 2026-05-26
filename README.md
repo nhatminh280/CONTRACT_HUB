@@ -11,7 +11,7 @@ pip install -r requirements.txt
 streamlit run ui/app.py
 ```
 
-Copy `.env.example` to `.env` and set `OPENAI_API_KEY` before using OpenAI-backed features.
+Copy `.env.example` to `.env` and set `GEMINI_API_KEY` before using Gemini-backed features.
 
 ## Slice 1 Scope
 
@@ -22,7 +22,7 @@ Copy `.env.example` to `.env` and set `OPENAI_API_KEY` before using OpenAI-backe
 - Store chunks in ChromaDB and BM25, with contract metadata in SQLite.
 - Fuse vector and keyword results with reciprocal rank fusion.
 - Rerank top hits with a local cross-encoder when available.
-- Generate OpenAI prompts that require citations in `[Điều X, trang Y, Hợp đồng Z]` form.
+- Generate Gemini prompts that require citations in `[Điều X, trang Y, Hợp đồng Z]` form.
 - Provide a Streamlit MVP with upload and search tabs.
 
 ## Limitations

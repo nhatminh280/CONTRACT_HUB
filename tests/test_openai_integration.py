@@ -8,20 +8,27 @@ from retrieval.hybrid_search import ScoredChunk
 
 
 class OpenAIIntegrationTests(unittest.TestCase):
-    def test_answer_with_citations_uses_openai_responses_api(self):
+    def test_answer_with_citations_uses_gemini_chat_completions(self):
         from generation.answer import answer_with_citations
 
         captured = {}
 
-        class FakeResponses:
+        class FakeCompletions:
             def create(self, **kwargs):
                 captured.update(kwargs)
-                return SimpleNamespace(output_text="OpenAI answer")
+                return SimpleNamespace(
+                    choices=[SimpleNamespace(message=SimpleNamespace(content="Gemini answer"))]
+                )
+
+        class FakeChat:
+            def __init__(self):
+                self.completions = FakeCompletions()
 
         class FakeOpenAI:
-            def __init__(self, api_key=None):
+            def __init__(self, api_key=None, base_url=None):
                 captured["api_key"] = api_key
-                self.responses = FakeResponses()
+                captured["base_url"] = base_url
+                self.chat = FakeChat()
 
         chunk = Chunk(
             id="c1",
@@ -37,41 +44,55 @@ class OpenAIIntegrationTests(unittest.TestCase):
                 "When is payment due?",
                 [ScoredChunk(chunk=chunk, score=1.0)],
                 api_key="test-key",
-                model="gpt-test",
+                model="gemini-test",
             )
 
-        self.assertEqual(answer, "OpenAI answer")
+        self.assertEqual(answer, "Gemini answer")
         self.assertEqual(captured["api_key"], "test-key")
-        self.assertEqual(captured["model"], "gpt-test")
-        self.assertIn("Không có trong tài liệu", captured["instructions"])
-        self.assertIn("[Section 4, trang 2, contract_001]", captured["input"])
-        self.assertEqual(captured["max_output_tokens"], 1200)
+        self.assertEqual(captured["base_url"], "https://generativelanguage.googleapis.com/v1beta/openai/")
+        self.assertEqual(captured["model"], "gemini-test")
+        self.assertEqual(captured["max_tokens"], 1200)
+        self.assertEqual(captured["messages"][0]["role"], "system")
+        self.assertIn("Không có trong tài liệu", captured["messages"][0]["content"])
+        self.assertIn("[Section 4, trang 2, contract_001]", captured["messages"][1]["content"])
 
-    def test_extract_structured_json_uses_openai_responses_api(self):
+    def test_extract_structured_json_uses_gemini_chat_completions(self):
         from ingestion.extractor import extract_structured_json
 
         captured = {}
 
-        class FakeResponses:
+        class FakeCompletions:
             def create(self, **kwargs):
                 captured.update(kwargs)
-                return SimpleNamespace(output_text='{"contract_id": "contract_001", "title": "Agreement"}')
+                return SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(content='{"contract_id": "contract_001", "title": "Agreement"}')
+                        )
+                    ]
+                )
+
+        class FakeChat:
+            def __init__(self):
+                self.completions = FakeCompletions()
 
         class FakeOpenAI:
-            def __init__(self, api_key=None):
+            def __init__(self, api_key=None, base_url=None):
                 captured["api_key"] = api_key
-                self.responses = FakeResponses()
+                captured["base_url"] = base_url
+                self.chat = FakeChat()
 
         with patch.dict(sys.modules, {"openai": SimpleNamespace(OpenAI=FakeOpenAI)}):
-            result = extract_structured_json("MASTER AGREEMENT", api_key="test-key", model="gpt-test")
+            result = extract_structured_json("MASTER AGREEMENT", api_key="test-key", model="gemini-test")
 
         self.assertEqual(result["contract_id"], "contract_001")
         self.assertEqual(result["title"], "Agreement")
         self.assertEqual(captured["api_key"], "test-key")
-        self.assertEqual(captured["model"], "gpt-test")
-        self.assertIn("strict JSON", captured["instructions"])
-        self.assertEqual(captured["input"], "MASTER AGREEMENT")
-        self.assertEqual(captured["max_output_tokens"], 2000)
+        self.assertEqual(captured["base_url"], "https://generativelanguage.googleapis.com/v1beta/openai/")
+        self.assertEqual(captured["model"], "gemini-test")
+        self.assertEqual(captured["max_tokens"], 2000)
+        self.assertIn("strict JSON", captured["messages"][0]["content"])
+        self.assertEqual(captured["messages"][1]["content"], "MASTER AGREEMENT")
 
 
 if __name__ == "__main__":

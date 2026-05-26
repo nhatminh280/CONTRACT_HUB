@@ -5,7 +5,7 @@ import json
 import re
 from typing import Any
 
-from config.env import load_env_file
+from config.llm import gemini_api_key, gemini_base_url, gemini_model
 from indexing.sql_store import ContractRecord
 from ingestion.chunker import Chunk
 
@@ -17,19 +17,20 @@ Each clause must include clause_number, clause_type, page, summary.
 Return JSON only."""
 
 
-def extract_structured_json(text: str, api_key: str | None = None, model: str = "gpt-5-mini") -> dict[str, Any]:
-    """Extract structured contract data through OpenAI."""
+def extract_structured_json(text: str, api_key: str | None = None, model: str = "gemini-3.5-flash") -> dict[str, Any]:
+    """Extract structured contract data through Gemini's OpenAI-compatible API."""
     from openai import OpenAI
 
-    load_env_file()
-    client = OpenAI(api_key=api_key)
-    response = client.responses.create(
-        model=model,
-        instructions=EXTRACTION_PROMPT,
-        input=text,
-        max_output_tokens=2000,
+    client = OpenAI(api_key=gemini_api_key(api_key), base_url=gemini_base_url())
+    response = client.chat.completions.create(
+        model=gemini_model(model),
+        messages=[
+            {"role": "system", "content": EXTRACTION_PROMPT},
+            {"role": "user", "content": text},
+        ],
+        max_tokens=2000,
     )
-    return json.loads(response.output_text)
+    return json.loads(response.choices[0].message.content or "{}")
 
 
 MONTHS = {

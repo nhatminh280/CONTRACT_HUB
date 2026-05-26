@@ -171,7 +171,7 @@ class SliceOneCoreTests(unittest.TestCase):
         self.assertIn("Không có trong tài liệu", messages[0]["content"])
         self.assertIn("Khi nào thanh toán?", messages[1]["content"])
 
-    def test_llm_helpers_default_to_openai_model(self):
+    def test_llm_helpers_default_to_gemini_model(self):
         import inspect
 
         from generation.answer import answer_with_citations
@@ -179,11 +179,11 @@ class SliceOneCoreTests(unittest.TestCase):
 
         self.assertEqual(
             inspect.signature(answer_with_citations).parameters["model"].default,
-            "gpt-5-mini",
+            "gemini-3.5-flash",
         )
         self.assertEqual(
             inspect.signature(extract_structured_json).parameters["model"].default,
-            "gpt-5-mini",
+            "gemini-3.5-flash",
         )
 
     def test_sql_store_persists_contract_parties_and_clauses(self):

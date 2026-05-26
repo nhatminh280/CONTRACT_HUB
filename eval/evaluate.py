@@ -243,7 +243,7 @@ def render_markdown(summary: EvaluationSummary, evaluations: list[QueryEvaluatio
         f"- Precision@3: `{summary.precision_at_3:.3f}`",
         f"- Citation accuracy: `{summary.citation_accuracy:.3f}`",
         f"- Answer contains expected text: `{summary.answer_contains_accuracy:.3f}`",
-        "- Answer faithfulness: `not run`; OpenAI LLM-as-judge is still pending.",
+        "- Answer faithfulness: `not run`; Gemini LLM-as-judge is still pending.",
         "",
         "## Cases",
     ]
