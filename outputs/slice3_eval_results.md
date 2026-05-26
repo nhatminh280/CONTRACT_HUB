@@ -8,6 +8,7 @@
 - Precision@3: `1.000`
 - Citation accuracy: `1.000`
 - Answer contains expected text: `1.000`
+- Clause target coverage: `1.000` (5/5 expected evidence targets)
 - Answer faithfulness: `not run`; LLM-as-judge is still pending.
 
 ## Cases

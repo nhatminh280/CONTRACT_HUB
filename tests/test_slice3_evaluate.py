@@ -82,6 +82,50 @@ class SliceThreeEvaluateTests(unittest.TestCase):
         self.assertEqual(summary.citation_accuracy, 0.5)
         self.assertEqual(summary.answer_contains_accuracy, 0.5)
 
+    def test_clause_target_coverage_scores_expected_evidence_across_all_chunks(self):
+        from eval.evaluate import evaluate_clause_target_coverage
+
+        cases = [
+            {
+                "query_id": "q001",
+                "query": 'Highlight "Governing Law". Details: governing law',
+                "expected_contract_id": "contract_a",
+                "expected_page": 4,
+                "expected_contains": ["Delaware"],
+            },
+            {
+                "query_id": "q002",
+                "query": 'Highlight "Payment". Details: payment terms',
+                "expected_contract_id": "contract_a",
+                "expected_page": 8,
+                "expected_contains": ["net", "30"],
+            },
+        ]
+        chunks = [
+            Chunk(
+                id="governing-law",
+                text="This Agreement is governed by Delaware law.",
+                contract_id="contract_a",
+                clause_number="Section 13",
+                page_start=4,
+                page_end=4,
+            ),
+            Chunk(
+                id="wrong-payment-page",
+                text="Invoices are due net 30 days.",
+                contract_id="contract_a",
+                clause_number="Section 4",
+                page_start=7,
+                page_end=7,
+            ),
+        ]
+
+        coverage = evaluate_clause_target_coverage(cases, chunks)
+
+        self.assertEqual(coverage.matched_targets, 1)
+        self.assertEqual(coverage.total_targets, 2)
+        self.assertEqual(coverage.coverage, 0.5)
+
     def test_evaluate_cases_scopes_retrieval_to_expected_contract(self):
         from eval.evaluate import evaluate_cases
 

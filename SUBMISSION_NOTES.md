@@ -30,7 +30,7 @@ A clause-aware, citation-grounded RAG system over heterogeneous contract inputs:
 - **Hybrid retrieval** = intent router → semantic + BM25 → **RRF fusion (k=60)** → optional `cross-encoder/ms-marco-MiniLM-L-6-v2` reranker → top-k.
 - **Answer generation** via Gemini / OpenAI / Claude with a system prompt that forbids answers without citations and falls back to a deterministic extractive answer if the LLM call fails (rate limit, network).
 - **Streamlit UI** with upload, chat, citation badges, click-to-expand source clauses, and CSV export.
-- **Evaluation script** (`eval/evaluate.py`) computes Precision@3, citation accuracy, and answer-contains-expected on a known-answer set; exits non-zero on threshold breach.
+- **Evaluation script** (`eval/evaluate.py`) computes Precision@3, citation accuracy, clause target coverage, and answer-contains-expected on a known-answer set; exits non-zero on threshold breach.
 
 ## 3. Architecture
 
@@ -64,9 +64,10 @@ Full directory map is in `README.md` §5.
 |---|---|---|
 | Precision@3 (retrieval-only, 5 cases) | **1.000** (5/5) | > 0.90 |
 | Citation accuracy (retrieval-only, 5 cases) | **1.000** (5/5) | every answer cites clause + page |
+| Clause target coverage (`test_cases.json` proxy, 5 cases) | **1.000** (5/5) | proxy for > 0.85 recall |
 | Answer-contains-expected with LLM synthesis (Gemini `2.5-flash-lite`, 3 cases) | **1.000** (3/3) | — |
 | OCR accuracy on parties / dates / amounts | *requires labeled extraction benchmark* | > 0.99 |
-| Clause-extraction recall | *requires clause-level benchmark* | > 0.85 |
+| Full clause-extraction recall | *requires exhaustive clause-level benchmark* | > 0.85 |
 | Answer faithfulness (LLM-as-judge) | *not run* | proposed |
 
 Detailed per-case output: `outputs/slice3_eval_results.md` and `outputs/slice3_eval_results.json`.
@@ -91,8 +92,8 @@ Sanity-check artifacts from earlier slices: `outputs/slice1_smoke_test_results.m
 These are documented in `README.md §14` and re-stated here so a reviewer reading only this file understands the validation scope:
 
 1. **OCR field accuracy needs a labeled extraction benchmark.** The pipeline includes PaddleOCR-VL 1.5 plus API fallback, but this submission reports retrieval/citation metrics rather than a page-level *>99 %* OCR field score.
-2. **Clause-extraction recall needs clause-level labeling.** Clause-aware chunking is implemented and citation-preserving; measured recall should be added once a labeled clause set is available.
-3. **The retrieval smoke eval is 5 cases.** P@3 = 1.0 confirms the demo path is wired correctly, but it is not a statistically significant benchmark.
+2. **Full clause-extraction recall needs exhaustive clause-level labeling.** The evaluator now reports clause target coverage over `test_cases.json`; that is a useful proxy, but not a full recall score over every clause in each contract.
+3. **The retrieval smoke eval is 5 cases.** P@3 = 1.0 and clause target coverage = 1.0 confirm the demo path is wired correctly, but this is not a statistically significant benchmark.
 4. **Vietnamese is implemented but lightly tested** — chunker has VN regex, but the bundled eval is English (CUAD).
 5. **Intent router is keyword-based**, not learned. Robust to exact terms, brittle to paraphrase.
 6. **Text-to-SQL handles two query shapes** (`expiring_contracts`, `party_contract_value`) and runs against the pre-built demo SQLite, not your session uploads.
@@ -105,7 +106,7 @@ These are documented in `README.md §14` and re-stated here so a reviewer readin
 
 In rough priority order:
 
-1. Labeled OCR + clause-extraction benchmark for production-grade validation metrics.
+1. Labeled OCR + full clause-extraction benchmark for production-grade validation metrics.
 2. LLM-as-judge answer-faithfulness metric (the dataclass slot is already there).
 3. Persist session-time UI ingestions to the SQLite + BM25 stores so refresh ≠ data loss.
 4. LLM-driven structured extraction (`ingestion/extractor.py`) at ingest time so the SQLite `contracts` row is auto-populated.

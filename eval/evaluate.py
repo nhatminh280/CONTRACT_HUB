@@ -59,6 +59,16 @@ class EvaluationSummary:
     precision_at_3: float
     citation_accuracy: float
     answer_contains_accuracy: float
+    clause_target_coverage: float = 0.0
+    matched_clause_targets: int = 0
+    total_clause_targets: int = 0
+
+
+@dataclass(frozen=True)
+class ClauseTargetCoverage:
+    matched_targets: int
+    total_targets: int
+    coverage: float
 
 
 def load_json(path: Path) -> Any:
@@ -163,6 +173,18 @@ def _matches_case(chunk: Chunk, case: dict[str, Any]) -> bool:
     )
 
 
+def evaluate_clause_target_coverage(test_cases: list[dict[str, Any]], chunks: list[Chunk]) -> ClauseTargetCoverage:
+    total = len(test_cases)
+    if total == 0:
+        return ClauseTargetCoverage(matched_targets=0, total_targets=0, coverage=0.0)
+    matched = sum(any(_matches_case(chunk, case) for chunk in chunks) for case in test_cases)
+    return ClauseTargetCoverage(
+        matched_targets=matched,
+        total_targets=total,
+        coverage=matched / total,
+    )
+
+
 def evaluate_ranked_results(
     test_cases: list[dict[str, Any]],
     ranked_chunks_by_query_id: dict[str, list[Chunk]],
@@ -223,7 +245,11 @@ def evaluate_cases(
     )
 
 
-def summarize_evaluations(evaluations: list[QueryEvaluation]) -> EvaluationSummary:
+def summarize_evaluations(
+    evaluations: list[QueryEvaluation],
+    clause_target_coverage: ClauseTargetCoverage | None = None,
+) -> EvaluationSummary:
+    coverage = clause_target_coverage or ClauseTargetCoverage(matched_targets=0, total_targets=0, coverage=0.0)
     total = len(evaluations)
     if total == 0:
         return EvaluationSummary(
@@ -231,12 +257,18 @@ def summarize_evaluations(evaluations: list[QueryEvaluation]) -> EvaluationSumma
             precision_at_3=0.0,
             citation_accuracy=0.0,
             answer_contains_accuracy=0.0,
+            clause_target_coverage=coverage.coverage,
+            matched_clause_targets=coverage.matched_targets,
+            total_clause_targets=coverage.total_targets,
         )
     return EvaluationSummary(
         total_cases=total,
         precision_at_3=sum(item.precision_at_3_hit for item in evaluations) / total,
         citation_accuracy=sum(item.citation_correct for item in evaluations) / total,
         answer_contains_accuracy=sum(item.answer_contains_expected for item in evaluations) / total,
+        clause_target_coverage=coverage.coverage,
+        matched_clause_targets=coverage.matched_targets,
+        total_clause_targets=coverage.total_targets,
     )
 
 
@@ -279,7 +311,8 @@ def run_evaluation(
     chunks = build_chunks(contract_ids)
     cases = load_test_cases(ROOT / "data" / "ground_truth" / "test_cases.json", contract_ids, limit=limit)
     evaluations = evaluate_cases(cases, chunks, use_llm_answer=use_llm_answer)
-    return summarize_evaluations(evaluations), evaluations
+    coverage = evaluate_clause_target_coverage(cases, chunks)
+    return summarize_evaluations(evaluations, coverage), evaluations
 
 
 def render_markdown(summary: EvaluationSummary, evaluations: list[QueryEvaluation], contract_ids: list[str]) -> str:
@@ -294,6 +327,8 @@ def render_markdown(summary: EvaluationSummary, evaluations: list[QueryEvaluatio
         f"- Precision@3: `{summary.precision_at_3:.3f}`",
         f"- Citation accuracy: `{summary.citation_accuracy:.3f}`",
         f"- Answer contains expected text: `{summary.answer_contains_accuracy:.3f}`",
+        f"- Clause target coverage: `{summary.clause_target_coverage:.3f}` "
+        f"({summary.matched_clause_targets}/{summary.total_clause_targets} expected evidence targets)",
         "- Answer faithfulness: `not run`; LLM-as-judge is still pending.",
         "",
         "## Cases",
@@ -368,6 +403,10 @@ def main() -> None:
     print(f"Wrote {display_path(args.output)}")
     print(f"Precision@3: {summary.precision_at_3:.3f}")
     print(f"Citation accuracy: {summary.citation_accuracy:.3f}")
+    print(
+        f"Clause target coverage: {summary.clause_target_coverage:.3f} "
+        f"({summary.matched_clause_targets}/{summary.total_clause_targets})"
+    )
     try:
         enforce_thresholds(
             summary,

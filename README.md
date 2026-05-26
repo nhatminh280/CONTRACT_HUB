@@ -209,6 +209,7 @@ In the UI, each answer renders:
 - **Precision@3** — does any of the top-3 retrieved chunks match the expected `contract_id` + `page` + an expected keyword?
 - **Citation accuracy** — is the matched chunk's `[clause, page, contract_id]` citation correct?
 - **Answer-contains-expected** — does the rendered answer (extractive or LLM) include one of the expected substrings?
+- **Clause target coverage** — does the chunked corpus contain the expected evidence target from `test_cases.json`, independent of ranking? This is a query-grounded proxy for clause recall, not a full clause-by-clause annotation benchmark.
 - **Answer faithfulness** — *planned, not implemented*; would use an LLM-as-judge to check that every claim is grounded in the cited chunk.
 
 Run it:
@@ -227,16 +228,17 @@ Outputs are written to `outputs/slice3_eval_results.{md,json}` and the script ex
 
 > ⚠️ **This is a smoke evaluation on 5 hand-curated cases, not a production-grade benchmark.** The numbers below say the *retrieval pipeline is wired correctly end-to-end on the demo corpus*; they should **not** be read as "this system gets 100% on all contracts everywhere".
 
-Run on commit `955e78f` against `contract_004` + `contract_005`:
+Run against `contract_004` + `contract_005`:
 
 | Metric | Result | Assignment target |
 |---|---|---|
 | Precision@3 (retrieval-only, 5 cases) | **1.000** (5/5) | > 0.90 |
 | Citation accuracy (retrieval-only, 5 cases) | **1.000** (5/5) | implicit — every answer must cite |
+| Clause target coverage (query-grounded proxy, 5 cases) | **1.000** (5/5) | proxy for > 0.85 recall |
 | Answer-contains-expected with LLM synthesis (Gemini `2.5-flash-lite`, 3 cases) | **1.000** (3/3) | — |
 | Answer faithfulness (LLM-as-judge) | *not run* | proposed metric |
 
-This prototype validates the retrieval and citation path end-to-end. OCR field accuracy and clause-level recall need a labeled extraction benchmark before they should be reported as headline metrics — see [§ 14 Limitations](#14-limitations).
+This prototype validates the retrieval and citation path end-to-end, and reports a `test_cases.json`-based clause target coverage proxy. OCR field accuracy and full clause-level recall still need a labeled extraction benchmark before they should be reported as production metrics — see [§ 14 Limitations](#14-limitations).
 
 Full per-case breakdown: [`outputs/slice3_eval_results.md`](outputs/slice3_eval_results.md).
 
@@ -245,7 +247,7 @@ Full per-case breakdown: [`outputs/slice3_eval_results.md`](outputs/slice3_eval_
 These are the validation boundaries for this prototype:
 
 - **OCR field accuracy needs a labeled extraction benchmark.** PaddleOCR-VL 1.5 is used for scanned inputs and the demo corpus processes cleanly, but the current evaluation focuses on retrieval/citation correctness rather than reporting a page-level *>99% parties/dates/amounts* score.
-- **Clause-extraction recall needs clause-level labeling.** The chunker preserves clause/page citations and supports English + Vietnamese heading patterns; a clause-by-clause recall benchmark is the next validation step before claiming the *>85%* target as a measured result.
+- **Full clause-extraction recall needs clause-level labeling.** The evaluator now reports clause target coverage over `test_cases.json`, which confirms expected evidence targets survive chunking. A full recall score still needs exhaustive clause-level labels across each contract.
 - **The smoke eval is 5 cases.** Precision@3 = 1.00 is informative, not statistically meaningful.
 - **No statistical significance testing**, no held-out test set, no train/val split — this is a 2–3 day prototype.
 - **Vietnamese support is implemented but lightly tested.** The chunker has Vietnamese regex (`Điều`) and the citation format renders `trang N` in Vietnamese, but the bundled eval is English (CUAD).
@@ -291,7 +293,8 @@ streamlit run ui/app.py
 
 # 4. Run the headline evaluation
 .venv/bin/python -m eval.evaluate --limit 5
-# Should print Precision@3 ~ 1.000 and Citation accuracy ~ 1.000,
+# Should print Precision@3 ~ 1.000, Citation accuracy ~ 1.000,
+# and Clause target coverage ~ 1.000,
 # writing outputs/slice3_eval_results.md.
 
 # 5. Run with LLM answer synthesis (uses your Gemini key)
@@ -311,7 +314,7 @@ The full submission walkthrough — selected problem, architecture, trade-offs �
 
 Ranked by impact:
 
-1. **Labeled OCR + clause-extraction benchmark.** Add page-level labels for parties/dates/amounts and clause-level labels for recall, then wire those metrics into `eval/evaluate.py`. ~½ day to label 5 contracts page-by-page, ~½ day to implement the metrics.
+1. **Labeled OCR + full clause-extraction benchmark.** Add page-level labels for parties/dates/amounts and exhaustive clause-level labels for recall, then extend the current clause target coverage metric into a full benchmark. ~½ day to label 5 contracts page-by-page, ~½ day to implement the metrics.
 2. **LLM-as-judge answer faithfulness.** The `summary.answer_faithfulness` slot is already in the metrics dataclass; just needs a judge prompt + a small rubric. ~2 hours.
 3. **Persist UI ingestions to the SQLite + BM25 stores** so a Streamlit restart does not wipe state. ~2 hours.
 4. **Auto-extract structured fields via LLM** (parties, value, currency, effective_date, expiry_date) at ingest time. The schema and `ingestion/extractor.py` are already there; just needs the LLM call wired in and validated.
