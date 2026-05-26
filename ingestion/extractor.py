@@ -5,6 +5,7 @@ import json
 import re
 from typing import Any
 
+from config.env import load_env_file
 from indexing.sql_store import ContractRecord
 from ingestion.chunker import Chunk
 
@@ -16,19 +17,19 @@ Each clause must include clause_number, clause_type, page, summary.
 Return JSON only."""
 
 
-def extract_structured_json(text: str, api_key: str | None = None, model: str = "claude-3-5-haiku-latest") -> dict[str, Any]:
-    """Extract structured contract data through Claude Haiku."""
-    import anthropic
+def extract_structured_json(text: str, api_key: str | None = None, model: str = "gpt-5-mini") -> dict[str, Any]:
+    """Extract structured contract data through OpenAI."""
+    from openai import OpenAI
 
-    client = anthropic.Anthropic(api_key=api_key)
-    message = client.messages.create(
+    load_env_file()
+    client = OpenAI(api_key=api_key)
+    response = client.responses.create(
         model=model,
-        max_tokens=2000,
-        system=EXTRACTION_PROMPT,
-        messages=[{"role": "user", "content": text}],
+        instructions=EXTRACTION_PROMPT,
+        input=text,
+        max_output_tokens=2000,
     )
-    content = message.content[0].text
-    return json.loads(content)
+    return json.loads(response.output_text)
 
 
 MONTHS = {

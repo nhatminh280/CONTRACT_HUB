@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from config.env import load_env_file
 from generation.answer import answer_with_citations
 from ingestion.chunker import Chunk, chunk_blocks
 from ingestion.ocr import PaddleOCRVLRunner
@@ -22,6 +23,7 @@ from ui.export import rows_to_csv
 
 DATA_RAW = ROOT / "data" / "raw"
 DATA_RAW.mkdir(parents=True, exist_ok=True)
+load_env_file(ROOT / ".env")
 
 
 st.set_page_config(page_title="Digital Contract Hub", layout="wide")
@@ -81,7 +83,7 @@ with search_tab:
         else:
             with st.spinner("Generating cited answer"):
                 try:
-                    answer = answer_with_citations(query, result.hits, api_key=os.getenv("ANTHROPIC_API_KEY"))
+                    answer = answer_with_citations(query, result.hits, api_key=os.getenv("OPENAI_API_KEY"))
                 except Exception:
                     answer = "\n\n".join(f"{hit.chunk.citation}\n{hit.chunk.text}" for hit in result.hits)
             st.markdown(answer)

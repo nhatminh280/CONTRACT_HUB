@@ -323,7 +323,7 @@ def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list
         f"- ChromaDB available: `{has_module('chromadb')}`",
         f"- rank_bm25 available: `{has_module('rank_bm25')}`",
         "- OCR: `not used`; Slice 2 foundation uses text PDFs/reference text for faster multi-contract indexing.",
-        "- Claude API call: `not used`; answers are extractive snippets from retrieved chunks for smoke-test determinism.",
+        "- OpenAI API call: `not used`; answers are extractive snippets from retrieved chunks for smoke-test determinism.",
         "- Intent router: deterministic local classifier from `retrieval/router.py`; retrieval still uses hybrid search while SQL is shown as diagnostics.",
         "- Text-to-SQL: deterministic local translator from `retrieval/text_to_sql.py`; report-only until metadata extraction is richer.",
         "",

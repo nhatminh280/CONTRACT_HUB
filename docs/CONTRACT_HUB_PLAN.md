@@ -1,6 +1,6 @@
 # Digital Contract Hub — Vibe Coding Plan
 > OnPoint AI Innovation Engineer · Problem 2  
-> Stack: PaddleOCR-VL 1.5 · LlamaIndex · ChromaDB · SQLite · Claude API · Streamlit  
+> Stack: PaddleOCR-VL 1.5 · LlamaIndex · ChromaDB · SQLite · OpenAI API · Streamlit  
 > Approach: Vertical slices — mỗi slice demo được độc lập
 
 ---
@@ -33,7 +33,7 @@
 │                              ↓                               │
 │                     RRF Fusion + Rerank                      │
 │                              ↓                               │
-│                    Claude → Answer + Citation                │
+│                    OpenAI → Answer + Citation                │
 └──────────────────────────────────────────────────────────────┘
                               ↓
 ┌──────────────────────────────────────────────────────────────┐
@@ -49,7 +49,7 @@
 ```
 contract-hub/
 ├── README.md
-├── .env.example               # ANTHROPIC_API_KEY, OPENAI_API_KEY
+├── .env.example               # OPENAI_API_KEY
 ├── requirements.txt
 │
 ├── ingestion/
@@ -67,12 +67,12 @@ contract-hub/
 ├── retrieval/
 │   ├── hybrid_search.py       # Vector + BM25 + RRF fusion
 │   ├── reranker.py            # cross-encoder reranking
-│   ├── text_to_sql.py         # structured query via Claude
+│   ├── text_to_sql.py         # structured query via OpenAI
 │   └── router.py              # intent classifier
 │
 ├── generation/
 │   ├── prompts.py             # tất cả prompt templates
-│   └── answer.py              # Claude call + citation format
+│   └── answer.py              # OpenAI call + citation format
 │
 ├── ui/
 │   └── app.py                 # Streamlit
@@ -97,13 +97,12 @@ contract-hub/
 **Bước 1 — Setup**
 ```bash
 pip install pymupdf paddleocr paddlepaddle-gpu chromadb \
-            llama-index rank_bm25 anthropic openai streamlit \
+            llama-index rank_bm25 openai streamlit \
             sentence-transformers sqlalchemy
 ```
 
 **.env**
 ```
-ANTHROPIC_API_KEY=sk-...
 OPENAI_API_KEY=sk-...
 ```
 
@@ -150,7 +149,7 @@ Mỗi chunk metadata: {contract_id, clause_number, page_start, page_end, clause_
 
 **Bước 6 — LLM Structured Extractor** `ingestion/extractor.py`
 
-Dùng Claude Haiku (rẻ ~$0.0008/1K tokens):
+Dùng OpenAI model:
 ```json
 {
   "contract_id": "HĐ-2024-001",
@@ -272,7 +271,7 @@ INTENTS = {
     "structured":  "Filter theo ngày, số tiền, tên công ty cụ thể",
     "keyword":     "Tìm điều khoản/số hợp đồng cụ thể",
 }
-# Claude Haiku classify → route sang đúng retriever
+# OpenAI classify → route sang đúng retriever
 ```
 
 **Text-to-SQL** `retrieval/text_to_sql.py`
@@ -312,7 +311,7 @@ User: "Tổng giá trị hợp đồng với Công ty X?"
 Metrics tự động:
 - **Precision@3**: retrieved top-3 có chứa expected_clause không
 - **Citation accuracy**: answer có cite đúng clause + page không
-- **Answer faithfulness**: LLM-as-judge (dùng Claude đánh giá Claude)
+- **Answer faithfulness** — LLM-as-judge
 
 **UI polish:**
 - Highlight source clause trong PDF viewer
@@ -355,14 +354,14 @@ Visualize trong Streamlit bằng `streamlit-agraph`.
 |---|---|---|
 | OCR scan | PaddleOCR-VL 1.5 + flash_attn2 | SOTA, free, tiếng Việt, 6GB OK |
 | PDF text | pymupdf | Nhanh, chính xác 100% |
-| LLM extract | Claude Haiku | Rẻ nhất, đủ cho structured JSON |
+| LLM extract | OpenAI | Structured JSON extraction |
 | Embedding | text-embedding-3-small | $0.02/1M tokens |
 | Vector DB | ChromaDB local | Zero setup |
 | Keyword | rank_bm25 | Pure Python |
 | Structured | SQLite + SQLAlchemy | Không cần server |
 | Reranker | ms-marco-MiniLM-L-6-v2 | Free, local |
 | RAG | LlamaIndex | Native citation |
-| LLM answer | Claude Sonnet | Citation-following tốt nhất |
+| LLM answer | OpenAI | Citation-following |
 | UI | Streamlit | Nhanh nhất cho POC |
 | KG (optional) | NetworkX + PyVis | Nhẹ, không cần Neo4j |
 

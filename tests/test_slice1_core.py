@@ -171,6 +171,21 @@ class SliceOneCoreTests(unittest.TestCase):
         self.assertIn("Không có trong tài liệu", messages[0]["content"])
         self.assertIn("Khi nào thanh toán?", messages[1]["content"])
 
+    def test_llm_helpers_default_to_openai_model(self):
+        import inspect
+
+        from generation.answer import answer_with_citations
+        from ingestion.extractor import extract_structured_json
+
+        self.assertEqual(
+            inspect.signature(answer_with_citations).parameters["model"].default,
+            "gpt-5-mini",
+        )
+        self.assertEqual(
+            inspect.signature(extract_structured_json).parameters["model"].default,
+            "gpt-5-mini",
+        )
+
     def test_sql_store_persists_contract_parties_and_clauses(self):
         from indexing.sql_store import ContractRecord, SQLStore
 
