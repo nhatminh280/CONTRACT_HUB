@@ -332,6 +332,16 @@ def write_chunks(chunks: list[Chunk]) -> None:
 def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list[dict[str, Any]]) -> None:
     passed = sum(1 for result in query_results if result["passed"])
     failed = len(query_results) - passed
+    real_ocr = any("ran PaddleOCR-VL" in status for status in statuses)
+    remaining_gaps = [
+        "- Structured extraction is deterministic smoke extraction, not Claude Haiku JSON extraction.",
+        "- Citations are clause/page citations from deterministic chunks; Claude answer synthesis is still pending.",
+    ]
+    if not real_ocr:
+        remaining_gaps.insert(
+            0,
+            "- Scanned image OCR is simulated with prepared reference text because PaddleOCR-VL did not complete successfully.",
+        )
     lines = [
         "# Slice 1 Smoke Test Results",
         "",
@@ -394,9 +404,7 @@ def write_markdown(statuses: list[str], chunks: list[Chunk], query_results: list
     lines.extend(
         [
             "## Remaining Gaps",
-            "- Scanned image OCR is simulated with prepared reference text because PaddleOCR-VL is not installed in this environment.",
-            "- Structured extraction is deterministic smoke extraction, not Claude Haiku JSON extraction.",
-            "- Citations are clause/page citations from deterministic chunks; Claude answer synthesis is still pending.",
+            *remaining_gaps,
             "",
         ]
     )

@@ -1,10 +1,14 @@
 from pathlib import Path
 import inspect
+import os
 import re
 from typing import Any
 
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
+SAFE_EXTRA_KWARGS = {"device"}
+os.environ.setdefault("FLAGS_use_cuda_managed_memory", "true")
+os.environ.setdefault("FLAGS_fraction_of_gpu_memory_to_use", "0.999")
 
 
 class PaddleOCRVLRunner:
@@ -18,19 +22,42 @@ class PaddleOCRVLRunner:
         if self._pipeline is None:
             from paddleocr import PaddleOCRVL
 
-            defaults = {"pipeline_version": "v1.5"}
+            defaults = {
+                "pipeline_version": "v1.5",
+                "use_layout_detection": False,
+                "use_doc_orientation_classify": False,
+                "use_doc_unwarping": False,
+                "use_chart_recognition": False,
+                "use_seal_recognition": False,
+                "use_ocr_for_image_block": False,
+            }
             defaults.update(self.kwargs)
             signature = inspect.signature(PaddleOCRVL)
-            accepts_extra_kwargs = any(
+            accepts_var_kwargs = any(
                 parameter.kind == inspect.Parameter.VAR_KEYWORD
                 for parameter in signature.parameters.values()
             )
-            if accepts_extra_kwargs:
+            if accepts_var_kwargs:
                 accepted = defaults
             else:
-                accepted = {key: value for key, value in defaults.items() if key in signature.parameters}
+                accepted = {
+                    key: value
+                    for key, value in defaults.items()
+                    if key in signature.parameters or key in SAFE_EXTRA_KWARGS
+                }
             self._pipeline = PaddleOCRVL(**accepted)
         return self._pipeline
+
+    def _can_extract_text(self, value: Any) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, str):
+            return bool(value.strip())
+        if isinstance(value, (list, tuple, dict)):
+            return bool(value)
+        if hasattr(value, "shape") and hasattr(value, "dtype"):
+            return False
+        return any(getattr(value, attr, None) is not None for attr in ("markdown", "text", "rec_text", "ocr_text"))
 
     def _prediction_text(self, prediction: Any) -> str:
         if prediction is None:
@@ -38,20 +65,41 @@ class PaddleOCRVLRunner:
         if isinstance(prediction, str):
             return prediction
         if isinstance(prediction, dict):
-            preferred = []
-            for key in ("markdown", "text", "rec_text", "ocr_text"):
+            if "res" in prediction and self._can_extract_text(prediction["res"]):
+                return self._prediction_text(prediction["res"])
+            if "parsing_res_list" in prediction:
+                texts = []
+                for block in prediction.get("parsing_res_list") or []:
+                    content = getattr(block, "content", None)
+                    if content is None and isinstance(block, dict):
+                        content = block.get("block_content")
+                    if self._can_extract_text(content):
+                        texts.append(self._prediction_text(content))
+                if texts:
+                    return "\n\n".join(text for text in texts if text)
+            for key in ("markdown_texts", "block_content", "markdown", "text", "rec_text", "ocr_text"):
                 value = prediction.get(key)
-                if value:
-                    preferred.append(self._prediction_text(value))
-            if preferred:
-                return "\n".join(text for text in preferred if text)
-            return "\n".join(self._prediction_text(value) for value in prediction.values() if value)
+                if self._can_extract_text(value):
+                    text = self._prediction_text(value)
+                    if text:
+                        return text
+            return "\n".join(
+                self._prediction_text(value)
+                for value in prediction.values()
+                if self._can_extract_text(value)
+            )
         if isinstance(prediction, (list, tuple)):
-            return "\n".join(self._prediction_text(item) for item in prediction if item)
-        for attr in ("markdown", "text", "rec_text", "ocr_text"):
+            return "\n".join(
+                self._prediction_text(item)
+                for item in prediction
+                if self._can_extract_text(item)
+            )
+        for attr in ("content", "markdown", "json", "text", "rec_text", "ocr_text"):
             value = getattr(prediction, attr, None)
-            if value:
+            if self._can_extract_text(value):
                 return self._prediction_text(value)
+        if hasattr(prediction, "shape") and hasattr(prediction, "dtype"):
+            return ""
         return str(prediction)
 
     def parse(self, pdf_path: str) -> list[dict[str, Any]]:
