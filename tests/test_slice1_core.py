@@ -201,6 +201,77 @@ class SliceOneCoreTests(unittest.TestCase):
         self.assertEqual(party, ("Công ty A", "bên_a"))
         self.assertEqual(clause, ("Điều 5", 3))
 
+    def test_deterministic_extractor_populates_dates_parties_and_clauses(self):
+        from ingestion.chunker import Chunk
+        from ingestion.extractor import extract_deterministic_record
+
+        chunks = [
+            Chunk(
+                id="c1",
+                text=(
+                    "MASTER SERVICES AGREEMENT\n"
+                    "This Master Services Agreement, dated as of the 5th day of February, 2020 "
+                    "(the \"Effective Date\"), is by and between Kubient Inc. (\"Kubient\") and "
+                    "The Associated Press (\"Customer\"). The initial term of this Agreement "
+                    "shall be one (1) year from the Effective Date."
+                ),
+                contract_id="contract_004",
+                clause_number="Document",
+                page_start=1,
+                page_end=1,
+            ),
+            Chunk(
+                id="c2",
+                text="14. General Provisions. This Agreement is governed by the laws of the State of Delaware.",
+                contract_id="contract_004",
+                clause_number="14",
+                page_start=4,
+                page_end=4,
+                clause_type="general",
+            ),
+        ]
+
+        record = extract_deterministic_record("contract_004", chunks)
+
+        self.assertEqual(record.title, "MASTER SERVICES AGREEMENT")
+        self.assertEqual(record.effective_date, "2020-02-05")
+        self.assertEqual(record.expiry_date, "2021-02-05")
+        self.assertEqual(record.governing_law, "State of Delaware")
+        self.assertEqual(
+            record.parties,
+            [
+                {"name": "Kubient Inc.", "role": "party"},
+                {"name": "The Associated Press", "role": "party"},
+            ],
+        )
+        self.assertEqual(record.clauses[0]["number"], "Document")
+
+    def test_deterministic_extractor_cleans_inline_title_law_and_party_aliases(self):
+        from ingestion.chunker import Chunk
+        from ingestion.extractor import extract_deterministic_record
+
+        chunks = [
+            Chunk(
+                id="c1",
+                text=(
+                    "Exhibit 10.14 MASTER SERVICES AGREEMENT This Master Services Agreement "
+                    "is by and between Kubient, Inc. (\"Kubient\"), and The Associated Press "
+                    "(\"Customer\"). This Agreement is governed in all respects by the laws "
+                    "of the State of Delaware without giving effect to its conflict of laws principles."
+                ),
+                contract_id="contract_004",
+                clause_number="Document",
+                page_start=1,
+                page_end=1,
+            )
+        ]
+
+        record = extract_deterministic_record("contract_004", chunks)
+
+        self.assertEqual(record.title, "MASTER SERVICES AGREEMENT")
+        self.assertEqual(record.governing_law, "State of Delaware")
+        self.assertEqual(record.parties[0]["name"], "Kubient, Inc.")
+
     def test_ocr_runner_parses_image_folder_with_page_numbers(self):
         from ingestion.ocr import PaddleOCRVLRunner
 
@@ -230,9 +301,25 @@ class SliceOneCoreTests(unittest.TestCase):
         captured = {}
 
         class FakePaddleOCRVL:
-            def __init__(self, pipeline_version="v1.5", **kwargs):
+            def __init__(
+                self,
+                pipeline_version="v1.5",
+                vl_rec_model_name=None,
+                vl_rec_model_dir=None,
+                layout_detection_model_name=None,
+                layout_detection_model_dir=None,
+                device=None,
+                **kwargs,
+            ):
                 captured["pipeline_version"] = pipeline_version
-                captured["kwargs"] = kwargs
+                captured["kwargs"] = {
+                    "vl_rec_model_name": vl_rec_model_name,
+                    "vl_rec_model_dir": vl_rec_model_dir,
+                    "layout_detection_model_name": layout_detection_model_name,
+                    "layout_detection_model_dir": layout_detection_model_dir,
+                    "device": device,
+                    **kwargs,
+                }
 
             def predict(self, _path):
                 return []

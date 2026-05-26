@@ -3,8 +3,10 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
+.streamlit/
 outputs/
 *.zip
+*.sqlite
 
 data/raw/*
 data/processed/*
