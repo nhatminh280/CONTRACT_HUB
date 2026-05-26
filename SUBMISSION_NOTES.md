@@ -58,15 +58,15 @@ Full directory map is in `README.md` §5.
 
 ## 4. Evaluation results
 
-> **Smoke evaluation on 5 hand-curated cases against `contract_004` + `contract_005`. Not a production benchmark.**
+> **Retrieval/citation smoke evaluation on 5 hand-curated cases against `contract_004` + `contract_005`.**
 
 | Metric | Result | Target |
 |---|---|---|
 | Precision@3 (retrieval-only, 5 cases) | **1.000** (5/5) | > 0.90 |
 | Citation accuracy (retrieval-only, 5 cases) | **1.000** (5/5) | every answer cites clause + page |
 | Answer-contains-expected with LLM synthesis (Gemini `2.5-flash-lite`, 3 cases) | **1.000** (3/3) | — |
-| OCR accuracy on parties / dates / amounts | *not measured on a labeled set* | > 0.99 |
-| Clause-extraction recall | *not measured* | > 0.85 |
+| OCR accuracy on parties / dates / amounts | *requires labeled extraction benchmark* | > 0.99 |
+| Clause-extraction recall | *requires clause-level benchmark* | > 0.85 |
 | Answer faithfulness (LLM-as-judge) | *not run* | proposed |
 
 Detailed per-case output: `outputs/slice3_eval_results.md` and `outputs/slice3_eval_results.json`.
@@ -88,11 +88,11 @@ Sanity-check artifacts from earlier slices: `outputs/slice1_smoke_test_results.m
 
 ## 6. Known limitations
 
-These are documented in `README.md §14` and re-stated here so a reviewer reading only this file does not miss them:
+These are documented in `README.md §14` and re-stated here so a reviewer reading only this file understands the validation scope:
 
-1. **OCR accuracy is not formally measured.** No labeled-page benchmark exists in this repo; the *>99 %* assignment target is aspirational.
-2. **Clause-extraction recall is not measured.** Only retrieval-side metrics are evaluated.
-3. **The smoke eval is 5 cases.** P@3 = 1.0 is directional, not statistically significant.
+1. **OCR field accuracy needs a labeled extraction benchmark.** The pipeline includes PaddleOCR-VL 1.5 plus API fallback, but this submission reports retrieval/citation metrics rather than a page-level *>99 %* OCR field score.
+2. **Clause-extraction recall needs clause-level labeling.** Clause-aware chunking is implemented and citation-preserving; measured recall should be added once a labeled clause set is available.
+3. **The retrieval smoke eval is 5 cases.** P@3 = 1.0 confirms the demo path is wired correctly, but it is not a statistically significant benchmark.
 4. **Vietnamese is implemented but lightly tested** — chunker has VN regex, but the bundled eval is English (CUAD).
 5. **Intent router is keyword-based**, not learned. Robust to exact terms, brittle to paraphrase.
 6. **Text-to-SQL handles two query shapes** (`expiring_contracts`, `party_contract_value`) and runs against the pre-built demo SQLite, not your session uploads.
@@ -105,7 +105,7 @@ These are documented in `README.md §14` and re-stated here so a reviewer readin
 
 In rough priority order:
 
-1. Labeled OCR + clause-extraction benchmark (the missing assignment-target measurements).
+1. Labeled OCR + clause-extraction benchmark for production-grade validation metrics.
 2. LLM-as-judge answer-faithfulness metric (the dataclass slot is already there).
 3. Persist session-time UI ingestions to the SQLite + BM25 stores so refresh ≠ data loss.
 4. LLM-driven structured extraction (`ingestion/extractor.py`) at ingest time so the SQLite `contracts` row is auto-populated.

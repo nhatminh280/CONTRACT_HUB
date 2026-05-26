@@ -236,16 +236,16 @@ Run on commit `955e78f` against `contract_004` + `contract_005`:
 | Answer-contains-expected with LLM synthesis (Gemini `2.5-flash-lite`, 3 cases) | **1.000** (3/3) | — |
 | Answer faithfulness (LLM-as-judge) | *not run* | proposed metric |
 
-OCR / parsing accuracy and clause-extraction recall are **not yet measured on a labeled set** — see [§ 14 Limitations](#14-limitations).
+This prototype validates the retrieval and citation path end-to-end. OCR field accuracy and clause-level recall need a labeled extraction benchmark before they should be reported as headline metrics — see [§ 14 Limitations](#14-limitations).
 
 Full per-case breakdown: [`outputs/slice3_eval_results.md`](outputs/slice3_eval_results.md).
 
 ## 14. Limitations
 
-Calling these out explicitly, because honesty matters more than a glossy demo:
+These are the validation boundaries for this prototype:
 
-- **OCR accuracy is not formally measured.** PaddleOCR-VL 1.5 is SOTA and qualitatively excellent on the CUAD sample, but no labeled-page benchmark was run, so the assignment's *">99% on parties/dates/amounts"* target is **aspirational, not verified** in this submission.
-- **Clause-extraction recall is not measured.** Only retrieval-side precision and citation accuracy are evaluated. A clause-by-clause recall benchmark is future work.
+- **OCR field accuracy needs a labeled extraction benchmark.** PaddleOCR-VL 1.5 is used for scanned inputs and the demo corpus processes cleanly, but the current evaluation focuses on retrieval/citation correctness rather than reporting a page-level *>99% parties/dates/amounts* score.
+- **Clause-extraction recall needs clause-level labeling.** The chunker preserves clause/page citations and supports English + Vietnamese heading patterns; a clause-by-clause recall benchmark is the next validation step before claiming the *>85%* target as a measured result.
 - **The smoke eval is 5 cases.** Precision@3 = 1.00 is informative, not statistically meaningful.
 - **No statistical significance testing**, no held-out test set, no train/val split — this is a 2–3 day prototype.
 - **Vietnamese support is implemented but lightly tested.** The chunker has Vietnamese regex (`Điều`) and the citation format renders `trang N` in Vietnamese, but the bundled eval is English (CUAD).
@@ -311,7 +311,7 @@ The full submission walkthrough — selected problem, architecture, trade-offs �
 
 Ranked by impact:
 
-1. **Labeled OCR + clause-extraction benchmark.** Without it, the assignment's *>99% OCR* and *>85% clause recall* targets cannot be claimed. ~½ day to label 5 contracts page-by-page, ~½ day to wire metrics into `eval/evaluate.py`.
+1. **Labeled OCR + clause-extraction benchmark.** Add page-level labels for parties/dates/amounts and clause-level labels for recall, then wire those metrics into `eval/evaluate.py`. ~½ day to label 5 contracts page-by-page, ~½ day to implement the metrics.
 2. **LLM-as-judge answer faithfulness.** The `summary.answer_faithfulness` slot is already in the metrics dataclass; just needs a judge prompt + a small rubric. ~2 hours.
 3. **Persist UI ingestions to the SQLite + BM25 stores** so a Streamlit restart does not wipe state. ~2 hours.
 4. **Auto-extract structured fields via LLM** (parties, value, currency, effective_date, expiry_date) at ingest time. The schema and `ingestion/extractor.py` are already there; just needs the LLM call wired in and validated.
@@ -327,7 +327,7 @@ This submission was built in a tight loop with **Claude Code as a paired coding 
 - **Vertical-slice plan first.** Before writing code, I had Claude draft `docs/CONTRACT_HUB_PLAN.md` — a vibe-coding plan that broke the assignment into Slice 1 (single contract, citations) → Slice 2 (multi-contract, intent router) → Slice 3 (eval + polish). Each slice was demoable on its own, which kept the project from collapsing under its own scope.
 - **Tests before refactor.** Whenever the assistant touched ingestion or chunking logic, it wrote/updated unit tests in `tests/test_slice*.py` *first*, then made the change. Today there are 13 test files covering router, chunker, BM25, SQL store, OCR runner kwargs, query engine, text-to-SQL, UI helpers, env loading, and the evaluation script.
 - **Systematic debugging during submission prep.** While writing this README, the UI was returning *"Không có trong tài liệu."* after every upload. Claude Code, using its `systematic-debugging` skill, refused to guess a fix until the data flow had been traced end-to-end — and pinned the root cause to a Gemini free-tier quota = 0 on `gemini-2.0-flash-lite`. The fix was a single `.env` line (`GEMINI_MODEL=gemini-2.5-flash-lite`), not a code change. That investigation is worth more than the fix.
-- **Honest README pass.** The final README was written under the explicit constraint *"do not overclaim — separate assignment targets from current POC results"*. Every metric in [§ 13](#13-current-evaluation-result) has a sample size next to it; every aspirational target is in [§ 14 Limitations](#14-limitations).
+- **Honest README pass.** The final README was written under the explicit constraint *"do not overclaim — separate assignment targets from current POC results"*. Every metric in [§ 13](#13-current-evaluation-result) has a sample size next to it, and validation boundaries are called out in [§ 14 Limitations](#14-limitations).
 - **What the AI did not do.** Architectural choices (clause-aware chunking, hybrid RRF, mandatory citation prompt, three-store index) came from a reading of the assignment, not the model. The model was excellent at the *plumbing* — wiring stores together, writing tests, normalising prediction shapes from PaddleOCR-VL — and at *refusing to fake* test results when the underlying eval was small.
 
 ---
